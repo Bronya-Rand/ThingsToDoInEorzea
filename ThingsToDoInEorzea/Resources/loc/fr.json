@@ -1,0 +1,8 @@
+{
+    "clause.deaths": "Morts: (<num(lnum1)>/<num(lnum2)>)",
+    "clause.deaths_none": "Sans morts",
+    "clause.wipes": "Wipes : (<num(lnum1)>/<num(lnum2)>)",
+    "clause.wipes_none": "Sans wipes",
+    "action.fate_region": "Réussir <num(lnum1)> ALÉA dans la zone : <sheet(PlaceName,lnum2,0)>.",
+    "action.fate_any": "Réussir <num(lnum1)> ALÉA."
+}

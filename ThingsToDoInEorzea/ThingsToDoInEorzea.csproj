@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Dalamud.NET.Sdk/15.0.0">
+  <PropertyGroup>
+    <Version>1.0.0.0</Version>
+    <Author>Bronya Rand</Author>
+    <Company>Bronya Rand</Company>
+    <Name>Things To Do In Eorzea</Name>
+    <AssemblyName>TTDIE</AssemblyName>
+    <Punchline>Unsure what to do? Forgot what you wanted to do? Nonsense! There's always things to do in Eorzea!</Punchline>
+    <Description>
+Keep track of all your objectives and tasks in Eorzea. Whether it's collecting tomes/items/gear, completing dungeons/trials/raids, FATEs, or purely making a random list of things to do to keep yourself busy, keep yourself organized and on track with this plugin.
+
+Features:
+    - Create and manage a list of objectives and tasks.
+    - Automatically track your progress on objectives and tasks.
+    - View your objectives and tasks with a window inspired by the in-game Duty Log.
+    - Automatic translation of objectives and tasks to your game client's language. (No need to write what you want to do. Just setup how you want to do it and the plugin will fill in the rest!)
+    - Open creativity for just about anything that comes up to mine! (...What? You don't think making silly challenges like doing Endsinger's Aria - Extreme with MINE in under 12 minutes a good idea? Seriously, you can make that a task if you want)
+       
+Inspired by the idea of "DYOM" (Design Your Own Mission) and "TTDISA" (Things To Do In San Andreas) from GTA: San Andreas as well as Simple To-Do List and other similar plugins.
+    </Description>
+    <Tags>to-do,list,track,task,objective,custom,utility,ui,other</Tags>
+    <CategoryTags>utility;ui;other</CategoryTags>
+    <PackageProjectUrl>https://github.com/Bronya-Rand/ThingsToDoInEorzea</PackageProjectUrl>
+    <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\loc\*.json" />
+  </ItemGroup>
+</Project>
