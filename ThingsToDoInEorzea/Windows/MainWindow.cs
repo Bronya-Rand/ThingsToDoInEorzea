@@ -80,7 +80,7 @@ public class MainWindow : Window, IDisposable
         using var child = ImRaii.Child("ObjectivesTableChild", avail);
         if (!child) return;
 
-        var objectives = plugin.Tracker.Objectives.ToList();
+        var objectives = plugin.Tracker.Objectives;
         if (objectives.Count == 0)
         {
             ImGui.TextDisabled(loc.T("ui.main.no_objectives"));
@@ -96,10 +96,8 @@ public class MainWindow : Window, IDisposable
         ImGui.TableSetupColumn(loc.T("ui.main.col_status"), ImGuiTableColumnFlags.WidthFixed, 150f);
         ImGui.TableHeadersRow();
 
-        for (var i = 0; i < objectives.Count; i++)
+        foreach (var objective in objectives)
         {
-            var objective = objectives[i];
-
             using (ImRaii.PushId(objective.Id.ToString()))
             {
                 ImGui.TableNextRow();
@@ -157,7 +155,7 @@ public class MainWindow : Window, IDisposable
                 ImGui.SetCursorScreenPos(rowStartPos);
 
                 // 1. Name Column
-                var objectiveDesc = objective.DescribeObjective(plugin.GameDataServices, plugin.Configuration);
+                var objectiveDesc = objective.GetDescription(plugin.GameDataServices, plugin.Configuration);
                 ImGui.AlignTextToFramePadding();
                 ImGui.TextUnformatted(objective.Title.IsNullOrEmpty() ? objectiveDesc : $"{objective.Title}");
                 if (ImGui.IsItemHovered())

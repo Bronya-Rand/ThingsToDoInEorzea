@@ -33,6 +33,9 @@ namespace ThingsToDoInEorzea.Models
         [JsonIgnore] public bool IsComplete => Primary.IsComplete;
         [JsonIgnore] public bool IsFailed => Modifiers.Any(m => m.IsFailed);
 
+        [JsonIgnore] private string? cachedDescription;
+        [JsonIgnore] private string? cachedCreatedAt;
+
         private bool isEnabled;
         public event Action<TodoObjective>? OnProgressChanged;
 
@@ -176,9 +179,18 @@ namespace ThingsToDoInEorzea.Models
                 Primary.OnGameEvent(evt);
         }
 
-        private void OnPrimaryChanged(ITrackCondition _) => OnProgressChanged?.Invoke(this);
+        private void OnPrimaryChanged(ITrackCondition _)
+        {
+            InvalidateCachedDescription();
+            OnProgressChanged?.Invoke(this);
+        }
 
-        public string DescribeObjective(GameDataServices gameData, Configuration configuration)
+        public string GetDescription(GameDataServices gameData, Configuration configuration) =>
+            cachedDescription ??= DescribeObjective(gameData, configuration);
+        public string GetCreatedAt() =>
+            cachedCreatedAt ??= CreatedAt.ToLocalTime().ToString("g");
+        public void InvalidateCachedDescription() => cachedDescription = null;
+        private string DescribeObjective(GameDataServices gameData, Configuration configuration)
         {
             var language = configuration?.LanguageOverride ?? DalamudServices.ClientState.ClientLanguage;
             var evaluator = DalamudServices.SeStringEvaluator;

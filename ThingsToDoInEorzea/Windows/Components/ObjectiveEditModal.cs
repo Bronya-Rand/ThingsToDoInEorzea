@@ -33,6 +33,12 @@ public sealed class ObjectiveEditModal(Plugin plugin)
     private Type? temporarySelectedModifer;
     #endregion
 
+    #region Cached Search Entries
+    private List<SearchPickerEntry>? cachedItemEntries;
+    private List<SearchPickerEntry>? cachedDutyEntries;
+    private List<SearchPickerEntry>? cachedFateEntries;
+    private List<SearchPickerEntry>? cachedTerritoryEntries;
+    #endregion
     public Action<TodoObjective>? OnSave { get; set; }
 
     public void LoadObjective(TodoObjective? objective)
@@ -52,6 +58,11 @@ public sealed class ObjectiveEditModal(Plugin plugin)
             editingPrimaryCondition = null;
             editingModifiers = [];
         }
+
+        cachedItemEntries = null;
+        cachedDutyEntries = null;
+        cachedFateEntries = null;
+        cachedTerritoryEntries = null;
         shouldOpenModal = true;
     }
 
@@ -220,12 +231,12 @@ public sealed class ObjectiveEditModal(Plugin plugin)
         var stackSize = (int)plugin.GameDataServices.ItemBrowserService.GetItemStackSize(itemId);
         var onFreeTrial = DalamudServices.Condition[ConditionFlag.OnFreeTrial];
 
-        var itemEntries = plugin.GameDataServices.ItemBrowserService.GetAll()
-            .Select(i => new SearchPickerEntry(i.RowId, i.Name, i.SingularName));
+        cachedItemEntries ??= [.. plugin.GameDataServices.ItemBrowserService.GetAll()
+            .Select(i => new SearchPickerEntry(i.RowId, i.Name, i.SingularName))];
         var _ = plugin.GameDataServices.ItemBrowserService.TryGet(itemId, out var selectedItem);
 
         ImGui.Text(loc.T("ui.edit.label_item"));
-        if (EntitySearchDropdown.Draw("###ItemDropdown", ref itemId, itemEntries, loc, placeholder: loc.T("ui.edit.select_item")))
+        if (EntitySearchDropdown.Draw("###ItemDropdown", ref itemId, cachedItemEntries, loc, placeholder: loc.T("ui.edit.select_item")))
             itemCond.ItemId = itemId;
 
         if (selectedItem != null)
@@ -270,11 +281,12 @@ public sealed class ObjectiveEditModal(Plugin plugin)
         var dutyId = dutyCond.ContentFinderConditionId;
         var target = dutyCond.Target;
         var textInfo = CultureInfo.CurrentCulture.TextInfo;
-        var dutyEntries = plugin.GameDataServices.DutyBrowserService.GetAll()
-            .Select(d => new SearchPickerEntry(d.RowId, textInfo.ToTitleCase(d.Name), d.ShortCode));
+
+        cachedDutyEntries ??= [.. plugin.GameDataServices.DutyBrowserService.GetAll()
+            .Select(d => new SearchPickerEntry(d.RowId, textInfo.ToTitleCase(d.Name), d.ShortCode))];
 
         ImGui.Text(loc.T("ui.edit.label_duty"));
-        if (EntitySearchDropdown.Draw("###DutyDropdown", ref dutyId, dutyEntries, loc, placeholder: loc.T("ui.edit.select_duty")))
+        if (EntitySearchDropdown.Draw("###DutyDropdown", ref dutyId, cachedDutyEntries, loc, placeholder: loc.T("ui.edit.select_duty")))
             dutyCond.ContentFinderConditionId = dutyId;
 
         ImGui.Text(loc.T("ui.target_count"));
@@ -318,11 +330,11 @@ public sealed class ObjectiveEditModal(Plugin plugin)
             case FateMatchMode.SpecificFate:
                 {
                     var fateId = fateCond.FateRowId ?? 0;
-                    var fateEntries = plugin.GameDataServices.FateBrowserService.GetAll()
-                        .Select(f => new SearchPickerEntry(f.RowId, f.Name));
+                    cachedFateEntries ??= [.. plugin.GameDataServices.FateBrowserService.GetAll()
+                        .Select(f => new SearchPickerEntry(f.RowId, f.Name))];
 
                     ImGui.Text(loc.T("ui.edit.label_fate"));
-                    if (EntitySearchDropdown.Draw("###FATEDropdown", ref fateId, fateEntries, loc, placeholder: loc.T("ui.edit.select_fate")))
+                    if (EntitySearchDropdown.Draw("###FATEDropdown", ref fateId, cachedFateEntries, loc, placeholder: loc.T("ui.edit.select_fate")))
                         fateCond.FateRowId = fateId;
                     break;
                 }
@@ -330,10 +342,11 @@ public sealed class ObjectiveEditModal(Plugin plugin)
             case FateMatchMode.AnyInRegion:
                 {
                     var territoryId = fateCond.TerritoryTypeRowId ?? 0;
-                    var territoryEntries = plugin.GameDataServices.TerritoryBrowserService.GetAll()
-                        .Select(t => new SearchPickerEntry(t.RowId, t.Name));
+                    cachedTerritoryEntries ??= [.. plugin.GameDataServices.TerritoryBrowserService.GetAll()
+                        .Select(t => new SearchPickerEntry(t.RowId, t.Name))];
+
                     ImGui.Text(loc.T("ui.edit.label_territory"));
-                    if (EntitySearchDropdown.Draw("###TerritoryDropdown", ref territoryId, territoryEntries, loc, placeholder: loc.T("ui.edit.select_territory")))
+                    if (EntitySearchDropdown.Draw("###TerritoryDropdown", ref territoryId, cachedTerritoryEntries, loc, placeholder: loc.T("ui.edit.select_territory")))
                         fateCond.TerritoryTypeRowId = territoryId;
                     break;
                 }
@@ -562,12 +575,14 @@ public sealed class ObjectiveEditModal(Plugin plugin)
                     customCond.Text = customCond.Text.Trim();
 
                 var result = editingObjective ?? new TodoObjective();
+                if (isEditing) result.Disable();
+
                 result.Title = editingTitle;
                 result.ContentId = DalamudServices.PlayerState.ContentId;
                 result.Primary = editingPrimaryCondition!;
                 result.Modifiers = editingModifiers;
 
-                result.Primary.Enable();
+                result.InvalidateCachedDescription();
                 OnSave?.Invoke(result);
                 isOpen = false;
             }

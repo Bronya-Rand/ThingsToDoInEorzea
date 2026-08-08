@@ -119,7 +119,7 @@ namespace ThingsToDoInEorzea.Windows.Components
             var displayTitle = objective.Title.IsNullOrEmpty() ? $"Objective {objective.Id}" : objective.Title;
             ImGui.Text(displayTitle);
 
-            var description = objective.DescribeObjective(gameData, plugin.Configuration);
+            var description = objective.GetDescription(gameData, plugin.Configuration);
             if (!description.IsNullOrEmpty())
                 if (ImGui.IsItemHovered())
                     ImGui.SetTooltip(description);

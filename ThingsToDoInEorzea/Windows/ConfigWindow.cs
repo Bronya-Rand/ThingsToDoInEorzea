@@ -63,6 +63,9 @@ public class ConfigWindow : Window, IDisposable
                     {
                         configuration.LanguageOverride = lang;
                         configuration.Save();
+
+                        foreach (var obj in plugin.Tracker.Objectives)
+                            obj.InvalidateCachedDescription();
                     }
                 }
             }

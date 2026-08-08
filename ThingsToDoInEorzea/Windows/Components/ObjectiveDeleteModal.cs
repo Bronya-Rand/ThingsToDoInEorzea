@@ -53,7 +53,6 @@ public sealed class ObjectiveDeleteModal(Plugin plugin)
     private void DrawContent()
     {
         if (objectiveToDelete == null) return;
-        if (!objectiveToDelete.IsComplete) return;
 
         DrawPrompt();
         ImTracker.SpacedSeparator();
@@ -86,7 +85,6 @@ public sealed class ObjectiveDeleteModal(Plugin plugin)
             {
                 OnDelete?.Invoke(objectiveToDelete);
                 plugin.Tracker.RemoveObjective(objectiveToDelete.Id);
-                objectiveToDelete.Dispose();
                 objectiveToDelete = null;
             }
             isOpen = false;

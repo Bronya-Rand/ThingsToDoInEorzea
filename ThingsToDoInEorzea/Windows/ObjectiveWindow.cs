@@ -202,7 +202,7 @@ public class ObjectiveWindow : Window, IDisposable
         var objectiveSpacing = Constants.ObjectiveSpacing * ImGuiHelpers.GlobalScale * AtkUnitBase.GetGlobalUIScale();
         ImTracker.Spacing(new Vector2(0, objectiveSpacing));
 
-        var objectiveDesc = objective.DescribeObjective(plugin.GameDataServices, plugin.Configuration);
+        var objectiveDesc = objective.GetDescription(plugin.GameDataServices, plugin.Configuration);
         ImTracker.OutlinedText(
             objectiveDesc, ImGuiColors.DalamudWhite, Constants.BlueOutlineColor,
             Constants.ObjectiveTextSize, wrapWidth: wrapWidth, align: align);
