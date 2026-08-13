@@ -1,11 +1,10 @@
 using System;
-using System.Linq;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
-using Dalamud.Utility;
+using ThingsToDoInEorzea.Models;
 using ThingsToDoInEorzea.Windows.Components;
 
 namespace ThingsToDoInEorzea.Windows;
@@ -156,8 +155,14 @@ public class MainWindow : Window, IDisposable
 
                 // 1. Name Column
                 var objectiveDesc = objective.GetDescription(plugin.GameDataServices, plugin.Configuration);
+                var nameText = objective.Recurrence switch
+                {
+                    ResetInterval.Daily => $"[D] {objective.Title}",
+                    ResetInterval.Weekly => $"[W] {objective.Title}",
+                    _ => objective.Title,
+                };
                 ImGui.AlignTextToFramePadding();
-                ImGui.TextUnformatted(objective.Title.IsNullOrEmpty() ? objectiveDesc : $"{objective.Title}");
+                ImGui.TextUnformatted(nameText);
                 if (ImGui.IsItemHovered())
                     ImGui.SetTooltip(objectiveDesc);
 

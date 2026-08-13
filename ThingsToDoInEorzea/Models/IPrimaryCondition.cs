@@ -21,6 +21,7 @@ namespace ThingsToDoInEorzea.Models
         [JsonIgnore] IReadOnlySet<Type> AllowedModifierTypes { get; }
         string DescribeAction(GameDataServices gameData);
         EvalSource DescribeActionSource(GameDataServices gameData);
+        void ResetObjectiveProgress();
         bool IsValid();
     }
 }

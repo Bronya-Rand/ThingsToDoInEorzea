@@ -18,6 +18,7 @@ namespace ThingsToDoInEorzea.Conditions.Primary
         public virtual void Enable() { }
         public virtual void Disable() { }
         public virtual void OnGameEvent(GameEvent evt) { }
+        public virtual void ResetObjectiveProgress() { }
         protected void NotifyProgressChanged() => OnProgressChanged?.Invoke(this);
 
         // IPrimaryCondition implementation

@@ -40,6 +40,11 @@ namespace ThingsToDoInEorzea.Conditions.Primary
             CompletedDuties++;
             NotifyProgressChanged();
         }
+        public override void ResetObjectiveProgress()
+        {
+            CompletedDuties = 0;
+            NotifyProgressChanged();
+        }
         public override bool IsValid() => ContentFinderConditionId > 0 && Target > 0;
 
         public override EvalSource DescribeActionSource(GameDataServices gameData)

@@ -56,6 +56,11 @@ namespace ThingsToDoInEorzea.Conditions.Primary
             currentCount++;
             NotifyProgressChanged();
         }
+        public override void ResetObjectiveProgress()
+        {
+            currentCount = 0;
+            NotifyProgressChanged();
+        }
         public override EvalSource DescribeActionSource(GameDataServices gameData) => MatchMode switch
         {
             FateMatchMode.SpecificFate => EvalSource.FromAddon(FateClearOnceMacro, [FateRowId ?? 0]),

@@ -24,9 +24,10 @@ namespace ThingsToDoInEorzea.Conditions.Modifiers
         [JsonIgnore] public TimeSpan Elapsed => startTime.HasValue ? DateTime.UtcNow - startTime.Value : TimeSpan.Zero;
         [JsonIgnore] public bool IsRunning => startTime.HasValue;
         [JsonIgnore] public TimeSpan Remaining => MaxDuration > Elapsed ? (MaxDuration - Elapsed) : TimeSpan.Zero;
-        [JsonIgnore] public override float? Progress =>
-            IsRunning && MaxDuration > TimeSpan.Zero 
-            ? (float?)Math.Clamp((Elapsed.TotalSeconds / MaxDuration.TotalSeconds), 0f, 1f) 
+        [JsonIgnore]
+        public override float? Progress =>
+            IsRunning && MaxDuration > TimeSpan.Zero
+            ? (float?)Math.Clamp((Elapsed.TotalSeconds / MaxDuration.TotalSeconds), 0f, 1f)
             : null;
         [JsonIgnore] public bool IsExpired => IsRunning && Elapsed > MaxDuration;
 

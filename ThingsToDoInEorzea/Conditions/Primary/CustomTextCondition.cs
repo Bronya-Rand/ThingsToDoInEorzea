@@ -20,6 +20,7 @@ namespace ThingsToDoInEorzea.Conditions.Primary
         {
             Text = text;
         }
+        public override void ResetObjectiveProgress() { /* No progress to reset */ }
         public override bool IsValid() => !Text.IsNullOrEmpty();
         public override string DescribeAction(GameDataServices gameData) => Text;
     }

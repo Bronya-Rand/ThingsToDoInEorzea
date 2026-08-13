@@ -1,3 +1,4 @@
+using System;
 using System.Text.Json.Serialization;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game;
@@ -17,7 +18,8 @@ namespace ThingsToDoInEorzea.Conditions.Primary
         public bool HighQualityOnly { get; set; }
 
         [JsonIgnore]
-        public override int Current => currentCount;
+        public override int Current => Math.Max(0, FetchCurrentInventoryCount() - BaselineCount);
+        public int BaselineCount { get; set; } // Handles daily/weekly collecting
 
         public ItemCountCondition() { } // For deserialization only
 
@@ -29,6 +31,11 @@ namespace ThingsToDoInEorzea.Conditions.Primary
         }
 
         public override void Enable() => RefreshCount();
+        public override void ResetObjectiveProgress()
+        {
+            BaselineCount = FetchCurrentInventoryCount();
+            RefreshCount();
+        }
         public override void OnGameEvent(GameEvent evt)
         {
             if (evt.Type != GameEventType.InventoryChanged) return;

@@ -28,7 +28,9 @@ public sealed class ObjectiveEditModal(Plugin plugin)
     private TodoObjective? editingObjective;
     private string editingTitle = string.Empty;
     private IPrimaryCondition? editingPrimaryCondition;
+    private ResetInterval editingResetInterval;
     private List<IModifierCondition> editingModifiers = [];
+    private IPrimaryCondition? oldPrimaryCondition;
 
     private Type? temporarySelectedModifer;
     #endregion
@@ -49,13 +51,17 @@ public sealed class ObjectiveEditModal(Plugin plugin)
         if (objective != null)
         {
             editingTitle = objective.Title;
+            oldPrimaryCondition = ClonePrimary(objective.Primary);
             editingPrimaryCondition = ClonePrimary(objective.Primary);
+            editingResetInterval = objective.Recurrence;
             editingModifiers = [.. objective.Modifiers.Select(CloneModifier)];
         }
         else
         {
             editingTitle = string.Empty;
+            oldPrimaryCondition = null;
             editingPrimaryCondition = null;
+            editingResetInterval = ResetInterval.None;
             editingModifiers = [];
         }
 
@@ -70,7 +76,10 @@ public sealed class ObjectiveEditModal(Plugin plugin)
     {
         if (primary is ItemCountCondition item)
         {
-            var draftItem = new ItemCountCondition(item.ItemId, item.Target, item.HighQualityOnly);
+            var draftItem = new ItemCountCondition(item.ItemId, item.Target, item.HighQualityOnly)
+            {
+                BaselineCount = item.BaselineCount
+            };
             draftItem.Enable();
             return draftItem;
         }
@@ -154,6 +163,10 @@ public sealed class ObjectiveEditModal(Plugin plugin)
 
         DrawPrimarySection();
 
+        // Recurrence Section (only for non-custom text objectives)
+        if (editingPrimaryCondition != null && editingPrimaryCondition is not CustomTextCondition)
+            DrawReccurenceSection();
+
         DrawModifierSection();
         ImTracker.SpacedSeparator();
 
@@ -188,6 +201,9 @@ public sealed class ObjectiveEditModal(Plugin plugin)
                             editingPrimaryCondition?.Dispose();
                             editingPrimaryCondition = ObjectiveConditionTypes.Create(primaryType);
 
+                            if (editingPrimaryCondition is CustomTextCondition)
+                                editingResetInterval = ResetInterval.None;
+
                             // Reset modifiers when changing primary condition
                             foreach (var mod in editingModifiers)
                                 mod.Dispose();
@@ -218,6 +234,26 @@ public sealed class ObjectiveEditModal(Plugin plugin)
                     break;
                 default:
                     break;
+            }
+        }
+    }
+    private void DrawReccurenceSection()
+    {
+        var loc = plugin.GameDataServices.Localization;
+        ImGui.Text(loc.T("ui.edit.label_recurrence"));
+        ImGui.SetNextItemWidth(-1);
+        var currentInterval = editingResetInterval;
+        var recurrencePreview = currentInterval.ToFriendlyString();
+        using (var combo = ImRaii.Combo($"###RecurrenceDropdown", recurrencePreview))
+        {
+            if (combo)
+            {
+                foreach (var rec in Enum.GetValues<ResetInterval>())
+                {
+                    var recName = rec.ToFriendlyString();
+                    if (ImGui.Selectable(recName, currentInterval == rec))
+                        editingResetInterval = rec;
+                }
             }
         }
     }
@@ -572,14 +608,27 @@ public sealed class ObjectiveEditModal(Plugin plugin)
             if (ImGui.Button(isEditing ? loc.T("ui.edit.btn_save") : loc.T("ui.edit.btn_create")))
             {
                 if (editingPrimaryCondition is CustomTextCondition customCond)
+                {
                     customCond.Text = customCond.Text.Trim();
+                    editingResetInterval = ResetInterval.None;
+                }
+
+                if (editingPrimaryCondition != null && ShouldResetProgressOnEdit(oldPrimaryCondition, editingPrimaryCondition))
+                    editingPrimaryCondition.ResetObjectiveProgress();
 
                 var result = editingObjective ?? new TodoObjective();
                 if (isEditing) result.Disable();
 
+                var newRecurrence = editingResetInterval;
+                if (!isEditing || result.Recurrence != newRecurrence)
+                {
+                    result.LastResetAt = DateTime.UtcNow;
+                }
+
                 result.Title = editingTitle;
                 result.ContentId = DalamudServices.PlayerState.ContentId;
                 result.Primary = editingPrimaryCondition!;
+                result.Recurrence = newRecurrence;
                 result.Modifiers = editingModifiers;
 
                 result.InvalidateCachedDescription();
@@ -592,5 +641,27 @@ public sealed class ObjectiveEditModal(Plugin plugin)
         {
             isOpen = false;
         }
+    }
+
+    private static bool ShouldResetProgressOnEdit(IPrimaryCondition? oldCond, IPrimaryCondition newCond)
+    {
+        if (oldCond == null || oldCond.GetType() != newCond.GetType())
+            return true;
+
+        return (oldCond, newCond) switch
+        {
+            (ItemCountCondition oldItem, ItemCountCondition newItem) =>
+                oldItem.ItemId != newItem.ItemId || oldItem.HighQualityOnly != newItem.HighQualityOnly,
+
+            (DutyClearCondition oldDuty, DutyClearCondition newDuty) =>
+                oldDuty.ContentFinderConditionId != newDuty.ContentFinderConditionId,
+
+            (FateClearCondition oldFate, FateClearCondition newFate) =>
+                oldFate.MatchMode != newFate.MatchMode ||
+                oldFate.FateRowId != newFate.FateRowId ||
+                oldFate.TerritoryTypeRowId != newFate.TerritoryTypeRowId,
+
+            _ => false
+        };
     }
 }

@@ -19,6 +19,13 @@ using ThingsToDoInEorzea.Windows.Components;
 
 namespace ThingsToDoInEorzea.Windows;
 
+public enum ObjectiveFilter
+{
+    All,
+    Daily,
+    Weekly,
+}
+
 /// <summary>
 /// Represents the main window for displaying objectives in the plugin.
 /// </summary>
@@ -30,6 +37,7 @@ public class ObjectiveWindow : Window, IDisposable
     private const int ObjectivesPerPage = 5;
 
     private bool editMode;
+    private ObjectiveFilter activeFilter = ObjectiveFilter.All;
     private readonly ObjectiveDeleteModal deleteModal;
 
     // Icons to use for each primary condition type.
@@ -82,31 +90,119 @@ public class ObjectiveWindow : Window, IDisposable
     }
     private void DrawObjectiveList()
     {
-        var objectives = plugin.Tracker.Objectives;
-        if (objectives.Count == 0)
+        var allObjectives = plugin.Tracker.Objectives;
+        if (allObjectives.Count == 0)
         {
             ImGui.TextDisabled("No objectives to display.");
         }
         else
         {
+            DrawFilterHeader(allObjectives);
 
-            var pageCount = (int)Math.Ceiling((float)objectives.Count / (float)ObjectivesPerPage);
-            currentPage = Math.Clamp(currentPage, 0, pageCount - 1);
-            var pageObjectives = objectives.Skip(currentPage * ObjectivesPerPage).Take(ObjectivesPerPage).ToList();
-
-            var align = plugin.Configuration.ObjectiveWindowTextAlignment;
-            var wrapWidth = ImGui.GetContentRegionAvail().X;
-
-            for (var i = 0; i < pageObjectives.Count; i++)
+            var filtered = activeFilter switch
             {
-                var objective = pageObjectives[i];
-                DrawObjective(objective, wrapWidth, align);
-                ImGui.Spacing();
+                ObjectiveFilter.Daily => [.. allObjectives.Where(o => o.Recurrence == ResetInterval.Daily)],
+                ObjectiveFilter.Weekly => [.. allObjectives.Where(o => o.Recurrence == ResetInterval.Weekly)],
+                _ => allObjectives.ToList(),
+            };
+
+            if (filtered.Count == 0)
+            {
+                ImGui.TextDisabled($"No {activeFilter.ToString().ToLower()} objectives to display.");
             }
-            if (pageCount > 1)
-                DrawPageControls(pageCount);
+            else
+            {
+                var pageCount = (int)Math.Ceiling((float)filtered.Count / (float)ObjectivesPerPage);
+                currentPage = Math.Clamp(currentPage, 0, pageCount - 1);
+                var pageObjectives = filtered.Skip(currentPage * ObjectivesPerPage).Take(ObjectivesPerPage).ToList();
+
+                var align = plugin.Configuration.ObjectiveWindowTextAlignment;
+                var wrapWidth = ImGui.GetContentRegionAvail().X;
+
+                for (var i = 0; i < pageObjectives.Count; i++)
+                {
+                    var objective = pageObjectives[i];
+                    DrawObjective(objective, wrapWidth, align);
+                    ImGui.Spacing();
+                }
+                if (pageCount > 1)
+                    DrawPageControls(pageCount);
+            }
         }
         DrawEditModeFooter();
+    }
+    private void DrawFilterHeader(IReadOnlyCollection<TodoObjective> allObjectives)
+    {
+        var dailyCount = allObjectives.Count(o => o.Recurrence == ResetInterval.Daily);
+        var weeklyCount = allObjectives.Count(o => o.Recurrence == ResetInterval.Weekly);
+        var allCount = allObjectives.Count;
+
+        // Only show filter header if there are recurring objectives or multiple objectives
+        if (dailyCount == 0 && weeklyCount == 0) return;
+
+        var filters = new (ObjectiveFilter Filter, string Label)[]
+        {
+            (ObjectiveFilter.All, $"All ({allCount})"),
+            (ObjectiveFilter.Daily, $"Daily ({dailyCount})"),
+            (ObjectiveFilter.Weekly, $"Weekly ({weeklyCount})"),
+        };
+
+        var style = ImGui.GetStyle();
+        var spacing = 12f * ImGuiHelpers.GlobalScale;
+
+        // Calculate total width of all filter labels and spacing
+        var totalWidth = 0f;
+        for (var i = 0; i < filters.Length; i++)
+        {
+            totalWidth += ImGui.CalcTextSize(filters[i].Label).X;
+            if (i < filters.Length - 1) totalWidth += spacing;
+        }
+
+        // Center the filter header
+        var availWidth = ImGui.GetContentRegionAvail().X;
+        var startX = Math.Max(0f, (availWidth - totalWidth) / 2f);
+
+        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + startX);
+
+        // Render each filter label
+        for (var i = 0; i < filters.Length; i++)
+        {
+            var (filter, label) = filters[i];
+            var isSelected = activeFilter == filter;
+
+            var labelSize = ImGui.CalcTextSize(label);
+            var cursorPos = ImGui.GetCursorScreenPos();
+            var mousePos = ImGui.GetMousePos();
+            var isHovered = mousePos.X >= cursorPos.X && mousePos.X <= cursorPos.X + labelSize.X &&
+                            mousePos.Y >= cursorPos.Y && mousePos.Y <= cursorPos.Y + labelSize.Y;
+
+            var color = isSelected
+                ? ImGuiColors.DalamudYellow
+                : isHovered
+                    ? ImGuiColors.DalamudWhite
+                    : ImGuiColors.DalamudGrey;
+
+            using (ImRaii.PushId($"FilterTab_{filter}"))
+            using (ImRaii.PushColor(ImGuiCol.Text, color))
+            {
+                ImGui.Text(label);
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
+                {
+                    if (activeFilter != filter)
+                    {
+                        activeFilter = filter;
+                        currentPage = 0;
+                    }
+                }
+            }
+
+            if (i < filters.Length - 1)
+            {
+                ImGui.SameLine(0, spacing);
+            }
+        }
+
+        ImTracker.SpacedSeparator();
     }
     private void DrawObjective(TodoObjective objective, float wrapWidth, ObjectiveWindowTextAlign align)
     {

@@ -24,17 +24,24 @@ namespace ThingsToDoInEorzea.Models
         private GameDataServices gameData = null!;
         private Configuration configuration = null!;
 
+        // Basic information about the objective
         public Guid Id { get; set; } = Guid.NewGuid();
         public ulong ContentId { get; set; } = 0; // The content ID of the player
         public string Title { get; set; } = string.Empty; // Title of the objective, e.g., "Heavyweight Blader"
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow; // Created timestamp
         public IPrimaryCondition Primary { get; set; } = null!; // The main objective to track
         public List<IModifierCondition> Modifiers { get; set; } = []; // List of modifiers that must be met
+
+        // Computed properties for the objective's state
         [JsonIgnore] public bool IsComplete => Primary.IsComplete;
         [JsonIgnore] public bool IsFailed => Modifiers.Any(m => m.IsFailed);
 
         [JsonIgnore] private string? cachedDescription;
         [JsonIgnore] private string? cachedCreatedAt;
+
+        // Daily/Weekly reset information
+        public ResetInterval Recurrence { get; set; } = ResetInterval.None;
+        public DateTime LastResetAt { get; set; } = DateTime.UtcNow;
 
         private bool isEnabled;
         public event Action<TodoObjective>? OnProgressChanged;

@@ -5,6 +5,7 @@ using System.Linq;
 using Dalamud.Plugin.Services;
 using ThingsToDoInEorzea.Conditions.Modifiers;
 using ThingsToDoInEorzea.Models;
+using ThingsToDoInEorzea.Utility;
 
 namespace ThingsToDoInEorzea.Services
 {
@@ -39,6 +40,7 @@ namespace ThingsToDoInEorzea.Services
 
             DalamudServices.ClientState.Login += OnLogin;
             DalamudServices.ClientState.Logout += OnLogout;
+            DalamudServices.Framework.Update += OnFrameworkUpdate;
 
             // Load objectives if already logged in
             if (DalamudServices.ClientState.IsLoggedIn)
@@ -53,6 +55,9 @@ namespace ThingsToDoInEorzea.Services
             UnloadObjectives();
             LoadObjectives();
 
+            // Reset objectives that have a reset interval and have passed their reset time
+            CheckRecurrentObjectivesForReset();
+
             var completedObjectives = objectiveStore.Items.Where(o => o.IsComplete).ToList();
             if (completedObjectives.Count > 0)
             {
@@ -63,6 +68,7 @@ namespace ThingsToDoInEorzea.Services
         }
 
         private void OnLogout(int type, int code) => UnloadObjectives();
+        private void OnFrameworkUpdate(IFramework framework) => CheckRecurrentObjectivesForReset();
 
         private void UnloadObjectives()
         {
@@ -121,6 +127,27 @@ namespace ThingsToDoInEorzea.Services
             objective.Enable(gameData, configuration);
         }
 
+        private void CheckRecurrentObjectivesForReset()
+        {
+            var anyReset = false;
+            foreach (var objective in objectiveStore.Items)
+            {
+                if (objective.Recurrence != ResetInterval.None && Timers.NeedsReset(objective.Recurrence, objective.LastResetAt))
+                {
+                    objective.Primary.ResetObjectiveProgress();
+                    objective.LastResetAt = DateTime.UtcNow;
+                    if (!objective.IsComplete)
+                        EnableObjective(objective);
+
+                    objectiveStore.Save(objective);
+                    anyReset = true;
+                }
+            }
+
+            if (anyReset)
+                OnObjectivesChanged?.Invoke();
+        }
+
         /// <summary>
         /// Handles the event when an objective's progress changes.
         /// </summary>
@@ -163,6 +190,7 @@ namespace ThingsToDoInEorzea.Services
         {
             DalamudServices.ClientState.Login -= OnLogin;
             DalamudServices.ClientState.Logout -= OnLogout;
+            DalamudServices.Framework.Update -= OnFrameworkUpdate;
             UnloadObjectives();
         }
     }
