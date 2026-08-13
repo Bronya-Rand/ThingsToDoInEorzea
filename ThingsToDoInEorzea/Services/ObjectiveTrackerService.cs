@@ -130,7 +130,9 @@ namespace ThingsToDoInEorzea.Services
         private void CheckRecurrentObjectivesForReset()
         {
             var anyReset = false;
-            foreach (var objective in objectiveStore.Items)
+            var objectiveStoreCopy = objectiveStore.Items.ToList(); // Snapshot
+
+            foreach (var objective in objectiveStoreCopy)
             {
                 if (objective.Recurrence != ResetInterval.None && Timers.NeedsReset(objective.Recurrence, objective.LastResetAt))
                 {
@@ -170,7 +172,9 @@ namespace ThingsToDoInEorzea.Services
         /// </summary>
         private void UpgradeObjectiveJobs()
         {
-            foreach (var objective in objectiveStore.Items)
+            var objectiveStoreCopy = objectiveStore.Items.ToList(); // Snapshot 
+
+            foreach (var objective in objectiveStoreCopy)
             {
                 var modifier = objective.Modifiers.Find(m => m is JobCondition);
                 if (modifier != null)
