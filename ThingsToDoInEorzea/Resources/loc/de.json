@@ -3,7 +3,7 @@
     "clause.deaths_none": "Ohne Tode",
     "clause.wipes": "Wipes: (<num(lnum1)>/<num(lnum2)>)",
     "clause.wipes_none": "Ohne Wipes",
-    "action.obtain_item": "Erhalte <if([lnum1==1],<denoun(Item,1,lnum2,1,4,1)>,<kilo(lnum1,.)> <denoun(Item,5,lnum2,2,4,1)>)>.",
+    "action.obtain_item": "<head(<denoun(Item,5,lnum1,lnum2,4,1)>)> erhalten.",
     "action.fate_region": "<if([lnum1<=1],Ein FATE,<num(lnum1)> FATEs)> in <sheet(PlaceName,lnum2,0)> erfolgreich abschließen.",
     "action.fate_any": "<if([lnum1<=1],Ein FATE,<num(lnum1)> FATEs)> erfolgreich abschließen."
 }
