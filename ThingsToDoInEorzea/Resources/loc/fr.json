@@ -3,6 +3,7 @@
     "clause.deaths_none": "Sans morts",
     "clause.wipes": "Wipes : (<num(lnum1)>/<num(lnum2)>)",
     "clause.wipes_none": "Sans wipes",
-    "action.fate_region": "Réussir <num(lnum1)> ALÉA dans la zone : <sheet(PlaceName,lnum2,0)>.",
-    "action.fate_any": "Réussir <num(lnum1)> ALÉA."
+    "action.obtain_item": "Obtenir <frnoun(Item,1,lnum1,lnum2,1)>.",
+    "action.fate_region": "Réussir ALÉA dans la zone : <sheet(PlaceName,lnum2,0)>.",
+    "action.fate_any": "Réussir ALÉA."
 }
