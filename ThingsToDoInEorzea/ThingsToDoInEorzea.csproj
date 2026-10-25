@@ -18,7 +18,7 @@ Features:
        
 Inspired by the idea of "DYOM" (Design Your Own Mission) and "TTDISA" (Things To Do In San Andreas) from GTA: San Andreas as well as Simple To-Do List and other similar plugins.
     </Description>
-    <Tags>to-do,list,track,task,objective,custom,utility,ui,other</Tags>
+    <Tags>to-do;list;track;task;objective;custom;utility;ui;other</Tags>
     <CategoryTags>utility;ui;other</CategoryTags>
     <PackageProjectUrl>https://github.com/Bronya-Rand/ThingsToDoInEorzea</PackageProjectUrl>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
