@@ -1,12 +1,10 @@
 using Dalamud.IoC;
-using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 
 namespace ThingsToDoInEorzea
 {
-    internal class DalamudServices
+    internal abstract class DalamudServices
     {
-        [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
         [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
         [PluginService] internal static ISeStringEvaluator SeStringEvaluator { get; private set; } = null!;
         [PluginService] internal static IClientState ClientState { get; private set; } = null!;

@@ -7,10 +7,10 @@ namespace ThingsToDoInEorzea.Services.Browser
 {
     public sealed class Duty
     {
-        public uint RowId { get; set; }
-        public string ShortCode { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
-        public uint AcceptClassJobCategory { get; set; }
+        public uint RowId { get; init; }
+        public string ShortCode { get; init; } = string.Empty;
+        public string Name { get; init; } = string.Empty;
+        public uint AcceptClassJobCategory { get; init; }
     }
     public sealed class DutyBrowserService(IDataManager dataManager, ISeStringEvaluator seStringEvaluator, Configuration configuration, ClientLanguage? overrideLanguage = null) : LuminaBrowserService<Duty, ContentFinderCondition>(dataManager, seStringEvaluator, configuration, overrideLanguage)
     {
@@ -27,7 +27,7 @@ namespace ThingsToDoInEorzea.Services.Browser
 
             if (id == 0 || name.IsNullOrEmpty() || shortCode.IsNullOrEmpty())
             {
-                entity = default!;
+                entity = null!;
                 return false;
             }
 
@@ -46,10 +46,9 @@ namespace ThingsToDoInEorzea.Services.Browser
         public bool IsTrialRaidUltimate(uint contentFinderConditionId)
         {
             if (contentFinderConditionId == 0) return false;
-            var duty = dataManager.GetExcelSheet<ContentFinderCondition>()?.GetRow(contentFinderConditionId);
-            if (duty == null) return false;
-            var type = duty.Value.ContentType.RowId;
-            return type == TrialContentTypeId || type == RaidContentTypeId || type == UltimateContentTypeId || type == ChaoticAllianceRaidContentTypeId;
+            var duty = DataManager.GetExcelSheet<ContentFinderCondition>().GetRow(contentFinderConditionId);
+            var type = duty.ContentType.RowId;
+            return type is TrialContentTypeId or RaidContentTypeId or UltimateContentTypeId or ChaoticAllianceRaidContentTypeId;
         }
     }
 }

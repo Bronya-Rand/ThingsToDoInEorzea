@@ -18,6 +18,6 @@ public class Configuration : IPluginConfiguration
 
     public void Save()
     {
-        DalamudServices.PluginInterface.SavePluginConfig(this);
+        Plugin.PluginInterface.SavePluginConfig(this);
     }
 }

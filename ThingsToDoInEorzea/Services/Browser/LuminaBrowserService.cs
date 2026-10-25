@@ -18,21 +18,19 @@ namespace ThingsToDoInEorzea.Services.Browser
     public abstract class LuminaBrowserService<TEntity, TLuminaRow>(IDataManager dataManager, ISeStringEvaluator seStringEvaluator, Configuration configuration, ClientLanguage? overrideLanguage = null) : BrowserServiceBase<uint, TEntity>(dataManager, configuration)
         where TLuminaRow : struct, IExcelRow<TLuminaRow>
     {
-        protected readonly ISeStringEvaluator seStringEvaluator = seStringEvaluator;
+        protected readonly ISeStringEvaluator SeStringEvaluator = seStringEvaluator;
         protected readonly ClientLanguage? OverrideLanguage = overrideLanguage; // For testing purposes
 
         protected string EvaluateSeString(ReadOnlySeString seString)
         {
             if (seString.IsEmpty) return string.Empty;
-            return seStringEvaluator.Evaluate(seString).ToString() ?? string.Empty;
+            return SeStringEvaluator.Evaluate(seString).ToString();
         }
         protected override void LoadData(CancellationToken token)
         {
             var excelSheet = OverrideLanguage.HasValue
-                ? dataManager.GetExcelSheet<TLuminaRow>(OverrideLanguage.Value)
-                : dataManager.GetExcelSheet<TLuminaRow>();
-
-            if (excelSheet == null) return;
+                ? DataManager.GetExcelSheet<TLuminaRow>(OverrideLanguage.Value)
+                : DataManager.GetExcelSheet<TLuminaRow>();
 
             foreach (var row in excelSheet)
             {

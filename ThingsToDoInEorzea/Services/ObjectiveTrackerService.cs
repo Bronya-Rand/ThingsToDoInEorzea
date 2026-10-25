@@ -18,7 +18,7 @@ namespace ThingsToDoInEorzea.Services
         private readonly Configuration configuration;
 
         private readonly EntityFileStore<TodoObjective> objectiveStore;
-        private static readonly string ObjectivesDirectory = Path.Combine(DalamudServices.PluginInterface.ConfigDirectory.FullName, "objectives");
+        private static readonly string ObjectivesDirectory = Path.Combine(Plugin.PluginInterface.ConfigDirectory.FullName, "objectives");
 
         public event Action? OnObjectivesChanged;
 

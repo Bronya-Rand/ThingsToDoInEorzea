@@ -13,8 +13,8 @@ namespace ThingsToDoInEorzea.Services.Browser
     /// <typeparam name="TEntity"></typeparam>
     public abstract class BrowserServiceBase<TKey, TEntity> : IBrowserService<TKey, TEntity> where TKey : notnull
     {
-        protected readonly IDataManager dataManager;
-        protected readonly Configuration configuration;
+        protected readonly IDataManager DataManager;
+        protected readonly Configuration Configuration;
 
         private readonly CancellationTokenSource cts = new();
         protected readonly Dictionary<TKey, TEntity> Entries = [];
@@ -24,9 +24,9 @@ namespace ThingsToDoInEorzea.Services.Browser
 
         protected BrowserServiceBase(IDataManager dataManager, Configuration configuration)
         {
-            this.dataManager = dataManager;
-            this.configuration = configuration;
-            DalamudServices.Framework.RunOnFrameworkThread(() => LoadInternal(cts.Token));
+            this.DataManager = dataManager;
+            this.Configuration = configuration;
+            DalamudServices.Framework.Run(() => LoadInternal(cts.Token));
         }
         private void LoadInternal(CancellationToken token)
         {
