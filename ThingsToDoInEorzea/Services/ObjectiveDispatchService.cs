@@ -18,6 +18,7 @@ namespace ThingsToDoInEorzea.Services
             this.trackerService = trackerService;
             hookService.OnGameEvent += Dispatch;
         }
+
         private void Dispatch(GameEvent evt)
         {
             foreach (var objective in trackerService.Objectives)
@@ -26,10 +27,7 @@ namespace ThingsToDoInEorzea.Services
                     objective.ReceiveExternalEvent(evt);
             }
         }
-        public void Dispose()
-        {
-            hookService.OnGameEvent -= Dispatch;
-            GC.SuppressFinalize(this);
-        }
+
+        public void Dispose() => hookService.OnGameEvent -= Dispatch;
     }
 }

@@ -54,6 +54,9 @@ public class ConfigWindow : Window, IDisposable
                 {
                     configuration.LanguageOverride = null;
                     configuration.Save();
+
+                    foreach (var obj in plugin.Tracker.Objectives)
+                        obj.InvalidateCachedDescription();
                 }
 
                 foreach (var lang in Enum.GetValues<ClientLanguage>())
@@ -70,6 +73,7 @@ public class ConfigWindow : Window, IDisposable
                 }
             }
         }
+
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip(loc.T("ui.config.language_override_tooltip"));
 
@@ -84,6 +88,7 @@ public class ConfigWindow : Window, IDisposable
             configuration.HideUnusedJobs = hideUnusedJobs;
             configuration.Save();
         }
+
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip(loc.T("ui.config.hide_unused_jobs_tooltip"));
     }
@@ -110,6 +115,7 @@ public class ConfigWindow : Window, IDisposable
                 }
             }
         }
+
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip(loc.T("ui.config.text_alignment_tooltip"));
     }

@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -16,21 +15,28 @@ namespace ThingsToDoInEorzea.Conditions.Helpers
 
         public static EvalSource FromAddon(uint rowId, params object[] args) =>
             new() { AddonRowId = rowId, Args = NormalizeArgs(args) };
+
         public static EvalSource FromMacro(string macro, params object[] args) =>
             new() { Macro = macro, Args = NormalizeArgs(args) };
+
         public static EvalSource FromLocKey(string key, params object[] args) =>
             new() { LocKey = key, Args = NormalizeArgs(args) };
 
         private static object[] NormalizeArgs(object[] args)
         {
-            if (args == null || args.Length == 0) return [];
-            if (args.Length == 1 && args[0] is IEnumerable enumerable && args[0] is not string)
+            switch (args.Length)
             {
-                var list = new List<object>();
-                foreach (var item in enumerable) list.Add(item);
-                return [.. list];
+                case 0:
+                    return [];
+                case 1 when args[0] is IEnumerable enumerable && args[0] is not string:
+                {
+                    var list = new List<object>();
+                    foreach (var item in enumerable) list.Add(item);
+                    return [.. list];
+                }
+                default:
+                    return args;
             }
-            return args;
         }
     }
 }

@@ -10,16 +10,19 @@ namespace ThingsToDoInEorzea.Models
     }
     public static class FateMatchModeExtensions
     {
-        public static string GetName(this FateMatchMode matchMode, LocalizationService? loc = null)
+        extension(FateMatchMode matchMode)
         {
-            var l = loc ?? new LocalizationService();
-            return matchMode switch
+            public string GetName(LocalizationService? loc = null)
             {
-                FateMatchMode.AnyFate => l.T("ui.fate_mode.any"),
-                FateMatchMode.AnyInRegion => l.T("ui.fate_mode.region"),
-                FateMatchMode.SpecificFate => l.T("ui.fate_mode.specific"),
-                _ => "Unknown"
-            };
+                var l = loc ?? new LocalizationService();
+                return matchMode switch
+                {
+                    FateMatchMode.AnyFate => l.T("ui.fate_mode.any"),
+                    FateMatchMode.AnyInRegion => l.T("ui.fate_mode.region"),
+                    FateMatchMode.SpecificFate => l.T("ui.fate_mode.specific"),
+                    _ => "Unknown"
+                };
+            }
         }
     }
 }

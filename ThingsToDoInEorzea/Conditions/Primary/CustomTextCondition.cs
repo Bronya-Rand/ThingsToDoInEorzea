@@ -1,5 +1,4 @@
 using Dalamud.Utility;
-using ThingsToDoInEorzea.Services;
 
 namespace ThingsToDoInEorzea.Conditions.Primary
 {
@@ -7,7 +6,7 @@ namespace ThingsToDoInEorzea.Conditions.Primary
     /// A class representing a condition that more a note than a specific task.
     /// </summary>
     /// <remarks>
-    /// Unlike <see cref="ItemCountCondition"/> or <see cref="DutyCompletionCondition"/>, this condition does not have any specific logic to determine completion.
+    /// Unlike <see cref="ItemCountCondition"/> or <see cref="DutyClearCondition"/>, this condition does not have any specific logic to determine completion.
     /// It is intended to be used as a note or reminder to do something that is not easily tracked via the game.
     /// </remarks>
     public class CustomTextCondition : PrimaryConditionBase
@@ -15,12 +14,13 @@ namespace ThingsToDoInEorzea.Conditions.Primary
         public string Text { get; set; } = string.Empty;
 
         public override bool ShowsProgress => false;
-        public CustomTextCondition() { } // For deserialization only
-        public CustomTextCondition(string text)
+
+        public override void ResetObjectiveProgress()
         {
-            Text = text;
+            /* No progress to reset */
         }
+
         public override bool IsValid() => !Text.IsNullOrEmpty();
-        public override string DescribeAction(GameDataServices gameData) => Text;
+        public override string DescribeAction() => Text;
     }
 }

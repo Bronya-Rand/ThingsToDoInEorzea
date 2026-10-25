@@ -7,18 +7,26 @@ namespace ThingsToDoInEorzea.Services.Browser
 {
     public sealed class Duty
     {
-        public uint RowId { get; set; }
-        public string ShortCode { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
-        public uint AcceptClassJobCategory { get; set; }
+        public uint RowId { get; init; }
+        public string ShortCode { get; init; } = string.Empty;
+        public string Name { get; init; } = string.Empty;
+        public uint AcceptClassJobCategory { get; init; }
     }
-    public sealed class DutyBrowserService(IDataManager dataManager, ISeStringEvaluator seStringEvaluator, Configuration configuration, ClientLanguage? overrideLanguage = null) : LuminaBrowserService<Duty, ContentFinderCondition>(dataManager, seStringEvaluator, configuration, overrideLanguage)
+
+    public sealed class DutyBrowserService(
+        IDataManager dataManager,
+        ISeStringEvaluator seStringEvaluator,
+        Configuration configuration,
+        ClientLanguage? overrideLanguage = null)
+        : LuminaBrowserService<Duty, ContentFinderCondition>(dataManager, seStringEvaluator, configuration,
+                                                             overrideLanguage)
     {
         // ContentType.RowId
         private const uint TrialContentTypeId = 4;
         private const uint RaidContentTypeId = 5;
         private const uint UltimateContentTypeId = 28;
         private const uint ChaoticAllianceRaidContentTypeId = 37;
+
         protected override bool TryMapRow(ContentFinderCondition row, out uint id, out Duty entity)
         {
             id = row.RowId;
@@ -27,7 +35,7 @@ namespace ThingsToDoInEorzea.Services.Browser
 
             if (id == 0 || name.IsNullOrEmpty() || shortCode.IsNullOrEmpty())
             {
-                entity = default!;
+                entity = null!;
                 return false;
             }
 
@@ -40,16 +48,17 @@ namespace ThingsToDoInEorzea.Services.Browser
             };
             return true;
         }
-        public string GetDutyName(uint dutyId) => TryGet(dutyId, out var duty) ? duty!.Name : $"Unknown Duty ({dutyId})";
+
         public uint GetAcceptClassJobCategoryId(uint dutyId)
             => TryGet(dutyId, out var duty) ? duty!.AcceptClassJobCategory : 0;
+
         public bool IsTrialRaidUltimate(uint contentFinderConditionId)
         {
             if (contentFinderConditionId == 0) return false;
-            var duty = dataManager.GetExcelSheet<ContentFinderCondition>()?.GetRow(contentFinderConditionId);
-            if (duty == null) return false;
-            var type = duty.Value.ContentType.RowId;
-            return type == TrialContentTypeId || type == RaidContentTypeId || type == UltimateContentTypeId || type == ChaoticAllianceRaidContentTypeId;
+            var duty = DataManager.GetExcelSheet<ContentFinderCondition>().GetRow(contentFinderConditionId);
+            var type = duty.ContentType.RowId;
+            return type is TrialContentTypeId or RaidContentTypeId or UltimateContentTypeId
+                       or ChaoticAllianceRaidContentTypeId;
         }
     }
 }

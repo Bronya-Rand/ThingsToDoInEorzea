@@ -7,10 +7,16 @@ namespace ThingsToDoInEorzea.Services.Browser
 {
     public sealed class FateInfo
     {
-        public uint RowId { get; set; }
-        public string Name { get; set; } = string.Empty;
+        public uint RowId { get; init; }
+        public string Name { get; init; } = string.Empty;
     }
-    public sealed class FateBrowserService(IDataManager dataManager, ISeStringEvaluator seStringEvaluator, Configuration configuration, ClientLanguage? overrideLanguage = null) : LuminaBrowserService<FateInfo, Fate>(dataManager, seStringEvaluator, configuration, overrideLanguage)
+
+    public sealed class FateBrowserService(
+        IDataManager dataManager,
+        ISeStringEvaluator seStringEvaluator,
+        Configuration configuration,
+        ClientLanguage? overrideLanguage = null)
+        : LuminaBrowserService<FateInfo, Fate>(dataManager, seStringEvaluator, configuration, overrideLanguage)
     {
         protected override bool TryMapRow(Fate row, out uint id, out FateInfo entity)
         {
@@ -19,7 +25,7 @@ namespace ThingsToDoInEorzea.Services.Browser
 
             if (id == 0 || name.IsNullOrEmpty())
             {
-                entity = default!;
+                entity = null!;
                 return false;
             }
 
@@ -30,7 +36,5 @@ namespace ThingsToDoInEorzea.Services.Browser
             };
             return true;
         }
-
-        public string GetFateName(uint fateId) => TryGet(fateId, out var fate) ? fate!.Name : $"Unknown Fate ({fateId})";
     }
 }

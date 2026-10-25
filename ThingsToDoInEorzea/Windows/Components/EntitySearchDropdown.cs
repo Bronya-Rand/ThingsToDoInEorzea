@@ -14,7 +14,7 @@ namespace ThingsToDoInEorzea.Windows.Components
     /// <summary>
     /// A dropdown component that allows users to search and select from a list of entries.
     /// </summary>
-    public class EntitySearchDropdown
+    public static class EntitySearchDropdown
     {
         private static string SearchFilter = string.Empty;
 
@@ -39,7 +39,6 @@ namespace ThingsToDoInEorzea.Windows.Components
                 : placeholder;
 
             // Get longest entry name for width calculation
-            var searchWidth = width;
             var longestEntry = entryList.OrderByDescending(e => e.Name.Length).FirstOrDefault();
 
             if (longestEntry != null)

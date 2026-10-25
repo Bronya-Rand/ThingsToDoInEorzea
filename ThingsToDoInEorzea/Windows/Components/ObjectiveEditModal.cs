@@ -18,27 +18,32 @@ namespace ThingsToDoInEorzea.Windows.Components;
 
 public sealed class ObjectiveEditModal(Plugin plugin)
 {
-    private readonly Plugin plugin = plugin;
-    private readonly EntitySearchModal entitySearchModal = new(plugin.GameDataServices.Localization);
 
     private bool shouldOpenModal;
     private bool isOpen;
 
     #region Editing State
+
     private TodoObjective? editingObjective;
     private string editingTitle = string.Empty;
     private IPrimaryCondition? editingPrimaryCondition;
+    private ResetInterval editingResetInterval;
     private List<IModifierCondition> editingModifiers = [];
+    private IPrimaryCondition? oldPrimaryCondition;
 
     private Type? temporarySelectedModifer;
+
     #endregion
 
     #region Cached Search Entries
+
     private List<SearchPickerEntry>? cachedItemEntries;
     private List<SearchPickerEntry>? cachedDutyEntries;
     private List<SearchPickerEntry>? cachedFateEntries;
     private List<SearchPickerEntry>? cachedTerritoryEntries;
+
     #endregion
+
     public Action<TodoObjective>? OnSave { get; set; }
 
     public void LoadObjective(TodoObjective? objective)
@@ -49,13 +54,17 @@ public sealed class ObjectiveEditModal(Plugin plugin)
         if (objective != null)
         {
             editingTitle = objective.Title;
+            oldPrimaryCondition = ClonePrimary(objective.Primary);
             editingPrimaryCondition = ClonePrimary(objective.Primary);
+            editingResetInterval = objective.Recurrence;
             editingModifiers = [.. objective.Modifiers.Select(CloneModifier)];
         }
         else
         {
             editingTitle = string.Empty;
+            oldPrimaryCondition = null;
             editingPrimaryCondition = null;
+            editingResetInterval = ResetInterval.None;
             editingModifiers = [];
         }
 
@@ -68,40 +77,37 @@ public sealed class ObjectiveEditModal(Plugin plugin)
 
     private static IPrimaryCondition? ClonePrimary(IPrimaryCondition? primary)
     {
-        if (primary is ItemCountCondition item)
+        switch (primary)
         {
-            var draftItem = new ItemCountCondition(item.ItemId, item.Target, item.HighQualityOnly);
-            draftItem.Enable();
-            return draftItem;
-        }
-
-        if (primary is DutyClearCondition duty)
-        {
-            return new DutyClearCondition
+            case ItemCountCondition item:
             {
-                ContentFinderConditionId = duty.ContentFinderConditionId,
-                Target = duty.Target,
-                CompletedDuties = duty.Current
-            };
+                var draftItem = new ItemCountCondition(item.ItemId, item.Target, item.HighQualityOnly)
+                {
+                    BaselineCount = item.BaselineCount
+                };
+                draftItem.Enable();
+                return draftItem;
+            }
+            case DutyClearCondition duty:
+                return new DutyClearCondition
+                {
+                    ContentFinderConditionId = duty.ContentFinderConditionId,
+                    Target = duty.Target,
+                    CompletedDuties = duty.Current
+                };
+            case CustomTextCondition custom:
+                return new CustomTextCondition
+                {
+                    Text = custom.Text
+                };
+            case FateClearCondition fate:
+                return new FateClearCondition(fate.MatchMode, fate.Target, fate.FateRowId, fate.TerritoryTypeRowId)
+                {
+                    PersistentCount = fate.Current
+                };
+            default:
+                return null;
         }
-
-        if (primary is CustomTextCondition custom)
-        {
-            return new CustomTextCondition
-            {
-                Text = custom.Text
-            };
-        }
-
-        if (primary is FateClearCondition fate)
-        {
-            return new FateClearCondition(fate.MatchMode, fate.Target, fate.FateRowId, fate.TerritoryTypeRowId)
-            {
-                PersistentCount = fate.Current
-            };
-        }
-
-        return null;
     }
 
     private static IModifierCondition CloneModifier(IModifierCondition mod) => mod switch
@@ -143,7 +149,6 @@ public sealed class ObjectiveEditModal(Plugin plugin)
         if (modal)
             DrawContent();
 
-        entitySearchModal.Draw();
     }
 
     private void DrawContent()
@@ -154,11 +159,16 @@ public sealed class ObjectiveEditModal(Plugin plugin)
 
         DrawPrimarySection();
 
+        // Recurrence Section (only for non-custom text objectives)
+        if (editingPrimaryCondition != null && editingPrimaryCondition is not CustomTextCondition)
+            DrawReccurenceSection();
+
         DrawModifierSection();
         ImTracker.SpacedSeparator();
 
         DrawFooter();
     }
+
     private void DrawTitleField()
     {
         var loc = plugin.GameDataServices.Localization;
@@ -166,13 +176,16 @@ public sealed class ObjectiveEditModal(Plugin plugin)
         ImGui.SetNextItemWidth(-1);
         ImGui.InputText("###ObjectiveTitle", ref editingTitle, 256);
     }
+
     private void DrawPrimarySection()
     {
         var loc = plugin.GameDataServices.Localization;
         ImGui.Text(loc.T("ui.edit.label_objective_type"));
         ImGui.SetNextItemWidth(-1);
 
-        var previewText = editingPrimaryCondition == null ? loc.T("ui.edit.select_primary_type") : ObjectiveConditionDisplay.GetPrimaryName(editingPrimaryCondition.GetType(), loc);
+        var previewText = editingPrimaryCondition == null
+                              ? loc.T("ui.edit.select_primary_type")
+                              : ObjectiveConditionDisplay.GetPrimaryName(editingPrimaryCondition.GetType(), loc);
 
         using (var combo = ImRaii.Combo($"###PrimaryObjective", previewText))
         {
@@ -187,6 +200,9 @@ public sealed class ObjectiveEditModal(Plugin plugin)
                         {
                             editingPrimaryCondition?.Dispose();
                             editingPrimaryCondition = ObjectiveConditionTypes.Create(primaryType);
+
+                            if (editingPrimaryCondition is CustomTextCondition)
+                                editingResetInterval = ResetInterval.None;
 
                             // Reset modifiers when changing primary condition
                             foreach (var mod in editingModifiers)
@@ -216,11 +232,29 @@ public sealed class ObjectiveEditModal(Plugin plugin)
                 case FateClearCondition fateClear:
                     DrawFateClearField(fateClear);
                     break;
-                default:
-                    break;
             }
         }
     }
+
+    private void DrawReccurenceSection()
+    {
+        var loc = plugin.GameDataServices.Localization;
+        ImGui.Text(loc.T("ui.edit.label_recurrence"));
+        ImGui.SetNextItemWidth(-1);
+        var currentInterval = editingResetInterval;
+        var recurrencePreview = currentInterval.ToFriendlyString();
+        using var combo = ImRaii.Combo($"###RecurrenceDropdown", recurrencePreview);
+        if (combo)
+        {
+            foreach (var rec in Enum.GetValues<ResetInterval>())
+            {
+                var recName = rec.ToFriendlyString();
+                if (ImGui.Selectable(recName, currentInterval == rec))
+                    editingResetInterval = rec;
+            }
+        }
+    }
+
     private void DrawItemCountField(ItemCountCondition itemCond)
     {
         var loc = plugin.GameDataServices.Localization;
@@ -231,12 +265,16 @@ public sealed class ObjectiveEditModal(Plugin plugin)
         var stackSize = (int)plugin.GameDataServices.ItemBrowserService.GetItemStackSize(itemId);
         var onFreeTrial = DalamudServices.Condition[ConditionFlag.OnFreeTrial];
 
-        cachedItemEntries ??= [.. plugin.GameDataServices.ItemBrowserService.GetAll()
-            .Select(i => new SearchPickerEntry(i.RowId, i.Name, i.SingularName))];
-        var _ = plugin.GameDataServices.ItemBrowserService.TryGet(itemId, out var selectedItem);
+        cachedItemEntries ??=
+        [
+            .. plugin.GameDataServices.ItemBrowserService.GetAll()
+                     .Select(i => new SearchPickerEntry(i.RowId, i.Name, i.SingularName))
+        ];
+        plugin.GameDataServices.ItemBrowserService.TryGet(itemId, out var selectedItem);
 
         ImGui.Text(loc.T("ui.edit.label_item"));
-        if (EntitySearchDropdown.Draw("###ItemDropdown", ref itemId, cachedItemEntries, loc, placeholder: loc.T("ui.edit.select_item")))
+        if (EntitySearchDropdown.Draw("###ItemDropdown", ref itemId, cachedItemEntries, loc,
+                                      placeholder: loc.T("ui.edit.select_item")))
             itemCond.ItemId = itemId;
 
         if (selectedItem != null)
@@ -255,14 +293,16 @@ public sealed class ObjectiveEditModal(Plugin plugin)
                     if (target > stackSize)
                         target = stackSize;
                 }
+
                 itemCond.Target = Math.Max(1, target);
             }
+
             var minItemCount = 1;
             if (stackSize == 0)
                 minItemCount = 0;
             var targetText = selectedItem.RowId == 1 && onFreeTrial
-                ? $"{loc.T("ui.edit.label_min")} {minItemCount} - {loc.T("ui.edit.label_max")} {Constants.MaxGilOnFreeTrial} (Free Trial Limit)"
-                : $"{loc.T("ui.edit.label_min")} {minItemCount} - {loc.T("ui.edit.label_max")} {stackSize}";
+                                 ? $"{loc.T("ui.edit.label_min")} {minItemCount} - {loc.T("ui.edit.label_max")} {Constants.MaxGilOnFreeTrial} (Free Trial Limit)"
+                                 : $"{loc.T("ui.edit.label_min")} {minItemCount} - {loc.T("ui.edit.label_max")} {stackSize}";
             if (selectedItem.RowId != 0)
                 ImTracker.CenteredTextDisabled(targetText);
 
@@ -271,10 +311,12 @@ public sealed class ObjectiveEditModal(Plugin plugin)
                 if (ImGui.Checkbox($"{loc.T("ui.edit.hq_only")}###ItemHqOnly", ref hqOnly))
                     itemCond.HighQualityOnly = hqOnly;
             }
+
             if (!selectedItem.CanBeHq && ImTracker.IsItemHoveredWhenDisabled())
                 ImGui.SetTooltip(loc.T("ui.edit.cannot_be_hq"));
         }
     }
+
     private void DrawDutyClearField(DutyClearCondition dutyCond)
     {
         var loc = plugin.GameDataServices.Localization;
@@ -282,11 +324,15 @@ public sealed class ObjectiveEditModal(Plugin plugin)
         var target = dutyCond.Target;
         var textInfo = CultureInfo.CurrentCulture.TextInfo;
 
-        cachedDutyEntries ??= [.. plugin.GameDataServices.DutyBrowserService.GetAll()
-            .Select(d => new SearchPickerEntry(d.RowId, textInfo.ToTitleCase(d.Name), d.ShortCode))];
+        cachedDutyEntries ??=
+        [
+            .. plugin.GameDataServices.DutyBrowserService.GetAll()
+                     .Select(d => new SearchPickerEntry(d.RowId, textInfo.ToTitleCase(d.Name), d.ShortCode))
+        ];
 
         ImGui.Text(loc.T("ui.edit.label_duty"));
-        if (EntitySearchDropdown.Draw("###DutyDropdown", ref dutyId, cachedDutyEntries, loc, placeholder: loc.T("ui.edit.select_duty")))
+        if (EntitySearchDropdown.Draw("###DutyDropdown", ref dutyId, cachedDutyEntries, loc,
+                                      placeholder: loc.T("ui.edit.select_duty")))
             dutyCond.ContentFinderConditionId = dutyId;
 
         ImGui.Text(loc.T("ui.target_count"));
@@ -294,6 +340,7 @@ public sealed class ObjectiveEditModal(Plugin plugin)
         if (ImGui.InputInt("###DutyTargetClears", ref target))
             dutyCond.Target = Math.Max(1, target);
     }
+
     private void DrawCustomTextField(CustomTextCondition customCond)
     {
         var loc = plugin.GameDataServices.Localization;
@@ -303,6 +350,7 @@ public sealed class ObjectiveEditModal(Plugin plugin)
         if (ImGui.InputTextMultiline("###CustomText", ref text, 512, new Vector2(-1, 100 * ImGuiHelpers.GlobalScale)))
             customCond.Text = text;
     }
+
     private void DrawFateClearField(FateClearCondition fateCond)
     {
         var loc = plugin.GameDataServices.Localization;
@@ -328,28 +376,36 @@ public sealed class ObjectiveEditModal(Plugin plugin)
         switch (fateCond.MatchMode)
         {
             case FateMatchMode.SpecificFate:
-                {
-                    var fateId = fateCond.FateRowId ?? 0;
-                    cachedFateEntries ??= [.. plugin.GameDataServices.FateBrowserService.GetAll()
-                        .Select(f => new SearchPickerEntry(f.RowId, f.Name))];
+            {
+                var fateId = fateCond.FateRowId ?? 0;
+                cachedFateEntries ??=
+                [
+                    .. plugin.GameDataServices.FateBrowserService.GetAll()
+                             .Select(f => new SearchPickerEntry(f.RowId, f.Name))
+                ];
 
-                    ImGui.Text(loc.T("ui.edit.label_fate"));
-                    if (EntitySearchDropdown.Draw("###FATEDropdown", ref fateId, cachedFateEntries, loc, placeholder: loc.T("ui.edit.select_fate")))
-                        fateCond.FateRowId = fateId;
-                    break;
-                }
+                ImGui.Text(loc.T("ui.edit.label_fate"));
+                if (EntitySearchDropdown.Draw("###FATEDropdown", ref fateId, cachedFateEntries, loc,
+                                              placeholder: loc.T("ui.edit.select_fate")))
+                    fateCond.FateRowId = fateId;
+                break;
+            }
 
             case FateMatchMode.AnyInRegion:
-                {
-                    var territoryId = fateCond.TerritoryTypeRowId ?? 0;
-                    cachedTerritoryEntries ??= [.. plugin.GameDataServices.TerritoryBrowserService.GetAll()
-                        .Select(t => new SearchPickerEntry(t.RowId, t.Name))];
+            {
+                var territoryId = fateCond.TerritoryTypeRowId ?? 0;
+                cachedTerritoryEntries ??=
+                [
+                    .. plugin.GameDataServices.TerritoryBrowserService.GetAll()
+                             .Select(t => new SearchPickerEntry(t.RowId, t.Name))
+                ];
 
-                    ImGui.Text(loc.T("ui.edit.label_territory"));
-                    if (EntitySearchDropdown.Draw("###TerritoryDropdown", ref territoryId, cachedTerritoryEntries, loc, placeholder: loc.T("ui.edit.select_territory")))
-                        fateCond.TerritoryTypeRowId = territoryId;
-                    break;
-                }
+                ImGui.Text(loc.T("ui.edit.label_territory"));
+                if (EntitySearchDropdown.Draw("###TerritoryDropdown", ref territoryId, cachedTerritoryEntries, loc,
+                                              placeholder: loc.T("ui.edit.select_territory")))
+                    fateCond.TerritoryTypeRowId = territoryId;
+                break;
+            }
         }
 
         ImGui.Text(loc.T("ui.target_count"));
@@ -357,6 +413,7 @@ public sealed class ObjectiveEditModal(Plugin plugin)
         if (ImGui.InputInt("###FATETargetClears", ref target))
             fateCond.Target = Math.Max(1, target);
     }
+
     private void DrawModifierSection()
     {
         var loc = plugin.GameDataServices.Localization;
@@ -371,25 +428,31 @@ public sealed class ObjectiveEditModal(Plugin plugin)
         }
 
         var modTypes = ObjectiveConditionTypes.ModifierTypes
-            .Where(modifiers.Contains)
-            .Where(t => !editingModifiers.Any(m => m.GetType() == t)) // Hide already added modifiers
-            .ToList();
+                                              .Where(modifiers.Contains)
+                                              .Where(t => editingModifiers.All(m => m.GetType() != t)) // Hide already added modifiers
+                                              .ToList();
 
         // Remove WipeCondition for Trials/Raids/Ultimates
         if (editingPrimaryCondition is DutyClearCondition dutyCond)
         {
-            var removeWipeMod = plugin.GameDataServices.DutyBrowserService.IsTrialRaidUltimate(dutyCond.ContentFinderConditionId);
+            var removeWipeMod =
+                plugin.GameDataServices.DutyBrowserService.IsTrialRaidUltimate(dutyCond.ContentFinderConditionId);
             if (removeWipeMod) modTypes.Remove(typeof(WipeCondition));
         }
-        var previewText = temporarySelectedModifer != null ? ObjectiveConditionDisplay.GetModifierName(temporarySelectedModifer, loc) : loc.T("ui.edit.select_modifier");
+
+        var previewText = temporarySelectedModifer != null
+                              ? ObjectiveConditionDisplay.GetModifierName(temporarySelectedModifer, loc)
+                              : loc.T("ui.edit.select_modifier");
 
         using (ImRaii.Disabled(modTypes.Count == 0))
         {
             float iconButtonWidth;
             using (ImRaii.PushFont(UiBuilder.IconFont))
             {
-                iconButtonWidth = ImGui.CalcTextSize(FontAwesomeIcon.Plus.ToIconString()).X + (ImGui.GetStyle().FramePadding.X * 2f);
+                iconButtonWidth = ImGui.CalcTextSize(FontAwesomeIcon.Plus.ToIconString()).X +
+                                  (ImGui.GetStyle().FramePadding.X * 2f);
             }
+
             var spacing = ImGui.GetStyle().ItemSpacing.X;
             ImGui.SetNextItemWidth(Math.Max(50f, ImGui.GetContentRegionAvail().X - iconButtonWidth - spacing));
 
@@ -400,7 +463,7 @@ public sealed class ObjectiveEditModal(Plugin plugin)
                     foreach (var modType in modTypes)
                     {
                         var displayName = ObjectiveConditionDisplay.GetModifierName(modType, loc);
-                        if (ImGui.Selectable(displayName, temporarySelectedModifer?.GetType() == modType))
+                        if (ImGui.Selectable(displayName, temporarySelectedModifer == modType))
                         {
                             temporarySelectedModifer = modType;
                         }
@@ -418,8 +481,10 @@ public sealed class ObjectiveEditModal(Plugin plugin)
                     temporarySelectedModifer = null;
                 }
             }
+
             ImGui.Spacing();
         }
+
         if (modTypes.Count == 0 && ImTracker.IsItemHoveredWhenDisabled())
         {
             ImGui.SetTooltip(loc.T("ui.edit.no_modifiers_available"));
@@ -446,6 +511,7 @@ public sealed class ObjectiveEditModal(Plugin plugin)
             }
         }
     }
+
     private void DrawModifierHeaderButtons(int index, IModifierCondition modifier)
     {
         var loc = plugin.GameDataServices.Localization;
@@ -462,11 +528,12 @@ public sealed class ObjectiveEditModal(Plugin plugin)
                 modifier.Dispose();
                 editingModifiers.RemoveAt(index);
             }
-
         }
+
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip(loc.T("ui.edit.remove_modifier_tooltip"));
     }
+
     private void DrawModifierFields(IModifierCondition modifier)
     {
         var loc = plugin.GameDataServices.Localization;
@@ -477,38 +544,42 @@ public sealed class ObjectiveEditModal(Plugin plugin)
 
             if (editingPrimaryCondition is DutyClearCondition dutyCond && dutyCond.ContentFinderConditionId > 0)
             {
-                var dutyClassCategoryId = plugin.GameDataServices.DutyBrowserService.GetAcceptClassJobCategoryId(dutyCond.ContentFinderConditionId);
-                var allowedJobIds = plugin.GameDataServices.JobBrowserService.GetAllowedJobIdsForCategory(dutyClassCategoryId);
-                var filteredAllowedJobIds = plugin.GameDataServices.JobBrowserService.GetFilteredAllowedJobIds(allowedJobIds);
+                var dutyClassCategoryId =
+                    plugin.GameDataServices.DutyBrowserService.GetAcceptClassJobCategoryId(
+                        dutyCond.ContentFinderConditionId);
+                var allowedJobIds =
+                    plugin.GameDataServices.JobBrowserService.GetAllowedJobIdsForCategory(dutyClassCategoryId);
+                var filteredAllowedJobIds =
+                    plugin.GameDataServices.JobBrowserService.GetFilteredAllowedJobIds(allowedJobIds);
 
                 jobEntries = plugin.GameDataServices.JobBrowserService.GetAll()
-                    .Where(j => filteredAllowedJobIds.Contains(j.RowId))
-                    .Select(j => new SearchPickerEntry(j.RowId, j.Name));
+                                   .Where(j => filteredAllowedJobIds.Contains(j.RowId))
+                                   .Select(j => new SearchPickerEntry(j.RowId, j.Name));
             }
             else
             {
                 var allJobIds = plugin.GameDataServices.JobBrowserService.GetAll().Select(j => j.RowId);
-                var filteredAllowedJobIds = plugin.GameDataServices.JobBrowserService.GetFilteredAllowedJobIds(allJobIds);
+                var filteredAllowedJobIds =
+                    plugin.GameDataServices.JobBrowserService.GetFilteredAllowedJobIds(allJobIds);
 
                 jobEntries = plugin.GameDataServices.JobBrowserService.GetAll()
-                    .Where(j => filteredAllowedJobIds.Contains(j.RowId))
-                    .Select(j => new SearchPickerEntry(j.RowId, j.Name));
+                                   .Where(j => filteredAllowedJobIds.Contains(j.RowId))
+                                   .Select(j => new SearchPickerEntry(j.RowId, j.Name));
             }
 
             ImGui.Text(loc.T("ui.edit.label_job"));
-            if (EntitySearchDropdown.Draw("###JobDropdown", ref jobId, jobEntries, loc, placeholder: loc.T("ui.edit.select_job")))
+            if (EntitySearchDropdown.Draw("###JobDropdown", ref jobId, jobEntries, loc,
+                                          placeholder: loc.T("ui.edit.select_job")))
                 jobMod.ClassJobId = jobId;
         }
         else if (modifier is TimerCondition timeMod)
         {
-            var isValid = timeMod.IsValid();
             var minutes = (int)timeMod.MaxDuration.TotalMinutes;
 
             ImGui.Text(loc.T("ui.edit.label_time_limit"));
             ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
             if (ImGui.InputInt("###TimeLimit", ref minutes))
                 timeMod.MaxDuration = TimeSpan.FromMinutes(Math.Max(1, minutes));
-
         }
         else if (modifier is WipeCondition wipeMod)
         {
@@ -533,7 +604,8 @@ public sealed class ObjectiveEditModal(Plugin plugin)
             var requireUnrestrictedParty = dutyMod.RequireUnrestrictedParty;
             var requireSilenceEcho = dutyMod.RequireSilenceEcho;
 
-            if (ImGui.Checkbox($"{loc.T("ui.edit.unrestricted_party")}###UnrestrictedParty", ref requireUnrestrictedParty))
+            if (ImGui.Checkbox($"{loc.T("ui.edit.unrestricted_party")}###UnrestrictedParty",
+                               ref requireUnrestrictedParty))
             {
                 dutyMod.RequireUnrestrictedParty = requireUnrestrictedParty;
                 // If Unrestricted Party is unchecked, disable Level Sync
@@ -543,11 +615,13 @@ public sealed class ObjectiveEditModal(Plugin plugin)
                     dutyMod.RequireLevelSync = false;
                 }
             }
+
             using (ImRaii.Disabled(!requireUnrestrictedParty))
             {
                 if (ImGui.Checkbox($"{loc.T("ui.edit.level_sync")}###LevelSync", ref requireLevelSync))
                     dutyMod.RequireLevelSync = requireLevelSync;
             }
+
             if (ImGui.Checkbox($"{loc.T("ui.edit.min_il")}###MinItemLevel", ref requireMinItemLevel))
                 dutyMod.RequireMinItemLevel = requireMinItemLevel;
             if (ImGui.Checkbox($"{loc.T("ui.edit.silence_echo")}###SilenceEcho", ref requireSilenceEcho))
@@ -556,6 +630,7 @@ public sealed class ObjectiveEditModal(Plugin plugin)
         else
             ImGui.TextDisabled($"No configuration available for {modifier.GetType().Name}");
     }
+
     private void DrawFooter()
     {
         var isTitleValid = !string.IsNullOrWhiteSpace(editingTitle);
@@ -572,14 +647,28 @@ public sealed class ObjectiveEditModal(Plugin plugin)
             if (ImGui.Button(isEditing ? loc.T("ui.edit.btn_save") : loc.T("ui.edit.btn_create")))
             {
                 if (editingPrimaryCondition is CustomTextCondition customCond)
+                {
                     customCond.Text = customCond.Text.Trim();
+                    editingResetInterval = ResetInterval.None;
+                }
+
+                if (editingPrimaryCondition != null &&
+                    ShouldResetProgressOnEdit(oldPrimaryCondition, editingPrimaryCondition))
+                    editingPrimaryCondition.ResetObjectiveProgress();
 
                 var result = editingObjective ?? new TodoObjective();
                 if (isEditing) result.Disable();
 
+                var newRecurrence = editingResetInterval;
+                if (!isEditing || result.Recurrence != newRecurrence)
+                {
+                    result.LastResetAt = DateTime.UtcNow;
+                }
+
                 result.Title = editingTitle;
                 result.ContentId = DalamudServices.PlayerState.ContentId;
                 result.Primary = editingPrimaryCondition!;
+                result.Recurrence = newRecurrence;
                 result.Modifiers = editingModifiers;
 
                 result.InvalidateCachedDescription();
@@ -587,10 +676,33 @@ public sealed class ObjectiveEditModal(Plugin plugin)
                 isOpen = false;
             }
         }
+
         ImGui.SameLine();
         if (ImGui.Button(loc.T("ui.btn_cancel")))
         {
             isOpen = false;
         }
+    }
+
+    private static bool ShouldResetProgressOnEdit(IPrimaryCondition? oldCond, IPrimaryCondition newCond)
+    {
+        if (oldCond == null || oldCond.GetType() != newCond.GetType())
+            return true;
+
+        return (oldCond, newCond) switch
+        {
+            (ItemCountCondition oldItem, ItemCountCondition newItem) =>
+                oldItem.ItemId != newItem.ItemId || oldItem.HighQualityOnly != newItem.HighQualityOnly,
+
+            (DutyClearCondition oldDuty, DutyClearCondition newDuty) =>
+                oldDuty.ContentFinderConditionId != newDuty.ContentFinderConditionId,
+
+            (FateClearCondition oldFate, FateClearCondition newFate) =>
+                oldFate.MatchMode != newFate.MatchMode ||
+                oldFate.FateRowId != newFate.FateRowId ||
+                oldFate.TerritoryTypeRowId != newFate.TerritoryTypeRowId,
+
+            _ => false
+        };
     }
 }

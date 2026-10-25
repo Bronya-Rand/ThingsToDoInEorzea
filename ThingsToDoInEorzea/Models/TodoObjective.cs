@@ -24,28 +24,38 @@ namespace ThingsToDoInEorzea.Models
         private GameDataServices gameData = null!;
         private Configuration configuration = null!;
 
+        // Basic information about the objective
         public Guid Id { get; set; } = Guid.NewGuid();
-        public ulong ContentId { get; set; } = 0; // The content ID of the player
+        public ulong ContentId { get; set; } // The content ID of the player
         public string Title { get; set; } = string.Empty; // Title of the objective, e.g., "Heavyweight Blader"
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow; // Created timestamp
         public IPrimaryCondition Primary { get; set; } = null!; // The main objective to track
         public List<IModifierCondition> Modifiers { get; set; } = []; // List of modifiers that must be met
-        [JsonIgnore] public bool IsComplete => Primary.IsComplete;
-        [JsonIgnore] public bool IsFailed => Modifiers.Any(m => m.IsFailed);
 
-        [JsonIgnore] private string? cachedDescription;
-        [JsonIgnore] private string? cachedCreatedAt;
+        // Computed properties for the objective's state
+        [JsonIgnore]
+        public bool IsComplete => Primary.IsComplete;
+
+        [JsonIgnore]
+        public bool IsFailed => Modifiers.Any(m => m.IsFailed);
+
+        [JsonIgnore]
+        private string? cachedDescription;
+
+        // Daily/Weekly reset information
+        public ResetInterval Recurrence { get; set; } = ResetInterval.None;
+        public DateTime LastResetAt { get; set; } = DateTime.UtcNow;
 
         private bool isEnabled;
         public event Action<TodoObjective>? OnProgressChanged;
 
-        public void Enable(GameDataServices gameData, Configuration configuration)
+        public void Enable(GameDataServices gameDataServices, Configuration config)
         {
             if (isEnabled) return;
             isEnabled = true;
 
-            this.gameData = gameData;
-            this.configuration = configuration;
+            this.gameData = gameDataServices;
+            this.configuration = config;
 
             Primary.Enable();
             foreach (var modifier in Modifiers) modifier.Enable();
@@ -79,10 +89,14 @@ namespace ThingsToDoInEorzea.Models
         }
 
         #region Dalamud Event Handlers
+
         private void OnDutyStarted(IDutyStateEventArgs args) => HandleDutyEvent(GameEventType.DutyStarted, args);
         private void OnDutyCompleted(IDutyStateEventArgs args) => HandleDutyEvent(GameEventType.DutyCompleted, args);
         private void OnDutyWiped(IDutyStateEventArgs args) => HandleDutyEvent(GameEventType.DutyWiped, args);
-        private void OnDutyRecommenced(IDutyStateEventArgs args) => HandleDutyEvent(GameEventType.DutyRecommenced, args);
+
+        private void OnDutyRecommenced(IDutyStateEventArgs args) =>
+            HandleDutyEvent(GameEventType.DutyRecommenced, args);
+
         private void HandleDutyEvent(GameEventType eventType, IDutyStateEventArgs args)
         {
             var evt = new GameEvent
@@ -94,19 +108,20 @@ namespace ThingsToDoInEorzea.Models
                 Timestamp = DateTime.UtcNow
             };
 
-            if (Primary is DutyClearCondition dutyCond && dutyCond.ContentFinderConditionId != args.ContentFinderCondition.RowId)
+            if (Primary is DutyClearCondition dutyCond &&
+                dutyCond.ContentFinderConditionId != args.ContentFinderCondition.RowId)
                 return;
 
             var modifierResults = Modifiers
-                .Select(mod => (Modifier: mod, Matched: mod.Matches(evt, gameData, configuration)))
-                .ToList();
+                                  .Select(mod => (Modifier: mod, Matched: mod.Matches(evt, gameData, configuration)))
+                                  .ToList();
 
             if (eventType == GameEventType.DutyStarted)
             {
                 var warnings = modifierResults
-                    .Where(r => r.Modifier.CheckOnStart && !r.Matched)
-                    .Select(r => $"- {r.Modifier.DescribeFailure(evt, gameData)}")
-                    .ToList();
+                               .Where(r => r.Modifier.CheckOnStart && !r.Matched)
+                               .Select(r => $"- {r.Modifier.DescribeFailure(evt, gameData)}")
+                               .ToList();
 
                 if (warnings.Count > 0)
                     gameData.NotificationService.SendInvalidMessage(Title, string.Join("\n", warnings));
@@ -119,25 +134,27 @@ namespace ThingsToDoInEorzea.Models
             else if (eventType == GameEventType.DutyCompleted)
             {
                 var failures = modifierResults
-                    .Where(r => !r.Matched)
-                    .Select(r => $"- {r.Modifier.DescribeFailure(evt, gameData)}")
-                    .ToList();
+                               .Where(r => !r.Matched)
+                               .Select(r => $"- {r.Modifier.DescribeFailure(evt, gameData)}")
+                               .ToList();
                 gameData.NotificationService.SendFailedMessage(Title, string.Join("\n", failures));
             }
         }
+
         private void OnItemChanged(GameInventoryEvent type, InventoryEventArgs data)
         {
             var evt = new GameEvent
             {
                 Type = GameEventType.InventoryChanged,
                 ItemId = data.Item.ItemId,
-                IsHQ = data.Item.IsHq,
+                IsHq = data.Item.IsHq,
                 Quantity = data.Item.Quantity,
                 Timestamp = DateTime.UtcNow
             };
             if (Modifiers.All(mod => mod.Matches(evt, gameData, configuration)))
                 Primary.OnGameEvent(evt);
         }
+
         private void OnConditionChanged(ConditionFlag flag, bool value)
         {
             GameEvent? evt = null;
@@ -157,6 +174,7 @@ namespace ThingsToDoInEorzea.Models
                     Timestamp = DateTime.UtcNow
                 };
             }
+
             if (evt != null && Modifiers.All(mod => mod.Matches(evt, gameData, configuration)))
                 Primary.OnGameEvent(evt);
         }
@@ -172,8 +190,8 @@ namespace ThingsToDoInEorzea.Models
             if (!isEnabled) return;
 
             var modifierResults = Modifiers
-                .Select(mod => (Modifier: mod, Matched: mod.Matches(evt, gameData, configuration)))
-                .ToList();
+                                  .Select(mod => (Modifier: mod, Matched: mod.Matches(evt, gameData, configuration)))
+                                  .ToList();
 
             if (modifierResults.All(r => r.Matched))
                 Primary.OnGameEvent(evt);
@@ -185,50 +203,42 @@ namespace ThingsToDoInEorzea.Models
             OnProgressChanged?.Invoke(this);
         }
 
-        public string GetDescription(GameDataServices gameData, Configuration configuration) =>
-            cachedDescription ??= DescribeObjective(gameData, configuration);
-        public string GetCreatedAt() =>
-            cachedCreatedAt ??= CreatedAt.ToLocalTime().ToString("g");
+        public string GetDescription(GameDataServices gameDataServices, Configuration config) =>
+            cachedDescription ??= DescribeObjective(gameDataServices, config);
+
         public void InvalidateCachedDescription() => cachedDescription = null;
-        private string DescribeObjective(GameDataServices gameData, Configuration configuration)
+
+        private string DescribeObjective(GameDataServices gameDataServices, Configuration config)
         {
-            var language = configuration?.LanguageOverride ?? DalamudServices.ClientState.ClientLanguage;
+            var language = config.LanguageOverride ?? DalamudServices.ClientState.ClientLanguage;
             var evaluator = DalamudServices.SeStringEvaluator;
-            var loc = gameData.Localization;
+            var loc = gameDataServices.Localization;
 
             // If the primary condition does not show progress, return its description directly.
             if (!Primary.ShowsProgress)
-                return Primary.DescribeAction(gameData);
+                return Primary.DescribeAction();
 
-            var actionSource = Primary.DescribeActionSource(gameData);
+            var actionSource = Primary.DescribeActionSource(gameDataServices);
             var action = ClauseEvaluator.Resolve(actionSource, evaluator, loc, language);
             if (action.IsNullOrEmpty())
-                action = Primary.DescribeAction(gameData);
+                action = Primary.DescribeAction();
 
             var progress = $"{Primary.Current}/{Primary.Target}";
 
-            var resolvedSegments = Modifiers
-                .SelectMany(mod => mod.DescribeSegments(gameData, configuration!))
-                .Select(seg => ClauseEvaluator.ResolveSegment(seg, evaluator, loc, language))
-                .Where(s => !string.IsNullOrEmpty(s.Value))
-                .ToList();
-
-            if (resolvedSegments.Count == 0)
-                return $"{action} {progress}";
-
             var sectionList = ClauseFormatting.SectionOrder.ToList();
             var sections = Modifiers
-                .GroupBy(m => m.Section)
-                .OrderBy(g => sectionList.IndexOf(g.Key))
-                .Select(g => (
-                    Section: g.Key,
-                    FormattedText: ClauseFormatting.FormatSection(
-                        g.SelectMany(m => m.DescribeSegments(gameData, configuration!))
-                         .Select(seg => ClauseEvaluator.ResolveSegment(seg, evaluator, loc, language)),
-                        language
-                    )))
-                .Where(s => !string.IsNullOrEmpty(s.FormattedText))
-                .ToList();
+                           .GroupBy(m => m.Section)
+                           .OrderBy(g => sectionList.IndexOf(g.Key))
+                           .Select(g => (
+                                            Section: g.Key,
+                                            FormattedText: ClauseFormatting.FormatSection(
+                                                g.SelectMany(m => m.DescribeSegments(gameDataServices, config))
+                                                 .Select(seg => ClauseEvaluator.ResolveSegment(
+                                                             seg, evaluator, loc, language)),
+                                                language
+                                            )))
+                           .Where(s => !string.IsNullOrEmpty(s.FormattedText))
+                           .ToList();
 
             var sb = new StringBuilder();
             sb.Append(action).Append(' ').Append(progress);
@@ -238,10 +248,12 @@ namespace ThingsToDoInEorzea.Models
                 var formatted = item.FormattedText;
                 if (formatted.Length > 0)
                     formatted = $"{char.ToUpper(formatted[0])}{formatted[1..]}";
-                sb.Append($"- ").Append(formatted);
+                sb.Append("- ").Append(formatted);
             }
+
             return sb.ToString();
         }
+
         public void Dispose()
         {
             Disable();

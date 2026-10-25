@@ -5,6 +5,7 @@ using System.Linq;
 using Dalamud.Plugin.Services;
 using ThingsToDoInEorzea.Conditions.Modifiers;
 using ThingsToDoInEorzea.Models;
+using ThingsToDoInEorzea.Utility;
 
 namespace ThingsToDoInEorzea.Services
 {
@@ -17,13 +18,14 @@ namespace ThingsToDoInEorzea.Services
         private readonly Configuration configuration;
 
         private readonly EntityFileStore<TodoObjective> objectiveStore;
-        private static readonly string ObjectivesDirectory = Path.Combine(DalamudServices.PluginInterface.ConfigDirectory.FullName, "objectives");
 
-        public event Action? OnObjectivesChanged;
+        private static readonly string ObjectivesDirectory =
+            Path.Combine(Plugin.PluginInterface.ConfigDirectory.FullName, "objectives");
 
         public IReadOnlyCollection<TodoObjective> Objectives => GetObjectives();
 
-        public ObjectiveTrackerService(GameDataServices gameData, Configuration configuration, IReliableFileStorage reliableFileStorage)
+        public ObjectiveTrackerService(
+            GameDataServices gameData, Configuration configuration, IReliableFileStorage reliableFileStorage)
         {
             this.gameData = gameData;
             this.configuration = configuration;
@@ -35,10 +37,11 @@ namespace ThingsToDoInEorzea.Services
                 ObjectivesDirectory,
                 o => o.Id,
                 "Objectives"
-                );
+            );
 
             DalamudServices.ClientState.Login += OnLogin;
             DalamudServices.ClientState.Logout += OnLogout;
+            DalamudServices.Framework.Update += OnFrameworkUpdate;
 
             // Load objectives if already logged in
             if (DalamudServices.ClientState.IsLoggedIn)
@@ -53,6 +56,9 @@ namespace ThingsToDoInEorzea.Services
             UnloadObjectives();
             LoadObjectives();
 
+            // Reset objectives that have a reset interval and have passed their reset time
+            CheckRecurrentObjectivesForReset();
+
             var completedObjectives = objectiveStore.Items.Where(o => o.IsComplete).ToList();
             if (completedObjectives.Count > 0)
             {
@@ -63,6 +69,7 @@ namespace ThingsToDoInEorzea.Services
         }
 
         private void OnLogout(int type, int code) => UnloadObjectives();
+        private void OnFrameworkUpdate(IFramework framework) => CheckRecurrentObjectivesForReset();
 
         private void UnloadObjectives()
         {
@@ -72,8 +79,8 @@ namespace ThingsToDoInEorzea.Services
                 objective.Disable();
                 objective.Dispose();
             }
+
             objectiveStore.Clear();
-            OnObjectivesChanged?.Invoke();
         }
 
         private void LoadObjectives()
@@ -87,10 +94,10 @@ namespace ThingsToDoInEorzea.Services
                     EnableObjective(objective);
 
             UpgradeObjectiveJobs();
-            OnObjectivesChanged?.Invoke();
         }
 
-        private List<TodoObjective> GetObjectives() => !DalamudServices.ClientState.IsLoggedIn ? [] : objectiveStore.Items;
+        private List<TodoObjective> GetObjectives() =>
+            !DalamudServices.ClientState.IsLoggedIn ? [] : objectiveStore.Items;
 
         public void AddObjective(TodoObjective objective)
         {
@@ -98,7 +105,6 @@ namespace ThingsToDoInEorzea.Services
             objectiveStore.Save(objective);
             if (!objective.IsComplete)
                 EnableObjective(objective);
-            OnObjectivesChanged?.Invoke();
         }
 
         public void RemoveObjective(Guid id)
@@ -111,7 +117,6 @@ namespace ThingsToDoInEorzea.Services
             objective.Dispose();
 
             objectiveStore.Delete(id);
-            OnObjectivesChanged?.Invoke();
         }
 
         public void EnableObjective(TodoObjective objective)
@@ -119,6 +124,26 @@ namespace ThingsToDoInEorzea.Services
             objective.OnProgressChanged -= HandleObjectiveProgressChanged; // Ensure we don't double-subscribe
             objective.OnProgressChanged += HandleObjectiveProgressChanged;
             objective.Enable(gameData, configuration);
+        }
+
+        private void CheckRecurrentObjectivesForReset()
+        {
+            var objectiveStoreCopy = objectiveStore.Items.ToList(); // Snapshot
+
+            foreach (var objective in objectiveStoreCopy)
+            {
+                if (objective.Recurrence != ResetInterval.None &&
+                    Timers.NeedsReset(objective.Recurrence, objective.LastResetAt))
+                {
+                    objective.Primary.ResetObjectiveProgress();
+                    objective.InvalidateCachedDescription();
+                    objective.LastResetAt = DateTime.UtcNow;
+                    if (!objective.IsComplete)
+                        EnableObjective(objective);
+
+                    objectiveStore.Save(objective);
+                }
+            }
         }
 
         /// <summary>
@@ -134,7 +159,6 @@ namespace ThingsToDoInEorzea.Services
             }
 
             objectiveStore.Save(objective);
-            OnObjectivesChanged?.Invoke();
         }
 
         /// <summary>
@@ -143,7 +167,9 @@ namespace ThingsToDoInEorzea.Services
         /// </summary>
         private void UpgradeObjectiveJobs()
         {
-            foreach (var objective in objectiveStore.Items)
+            var objectiveStoreCopy = objectiveStore.Items.ToList(); // Snapshot 
+
+            foreach (var objective in objectiveStoreCopy)
             {
                 var modifier = objective.Modifiers.Find(m => m is JobCondition);
                 if (modifier != null)
@@ -159,10 +185,12 @@ namespace ThingsToDoInEorzea.Services
                 }
             }
         }
+
         public void Dispose()
         {
             DalamudServices.ClientState.Login -= OnLogin;
             DalamudServices.ClientState.Logout -= OnLogout;
+            DalamudServices.Framework.Update -= OnFrameworkUpdate;
             UnloadObjectives();
         }
     }

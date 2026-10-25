@@ -64,6 +64,7 @@
     "ui.edit.silence_echo": "Silence Echo",
     "ui.edit.label_min": "Min:",
     "ui.edit.label_max": "Max:",
+    "ui.edit.label_recurrence": "Recurrence:",
     "ui.condition.item_count": "Item Count",
     "ui.condition.duty_clear": "Duty Clear",
     "ui.condition.custom_text": "Custom Text",

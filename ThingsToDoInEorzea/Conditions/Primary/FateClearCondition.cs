@@ -11,11 +11,9 @@ namespace ThingsToDoInEorzea.Conditions.Primary
     /// <summary>
     /// Represents a primary condition that checks whether a specific FATE has been cleared a certain number of times.
     /// </summary>
-    public class FateClearCondition : PrimaryConditionBase
+    public sealed class FateClearCondition : PrimaryConditionBase
     {
         private const uint FateClearOnceMacro = 8340;
-
-        private int currentCount;
 
         public FateMatchMode MatchMode { get; set; } = FateMatchMode.SpecificFate;
 
@@ -26,21 +24,19 @@ namespace ThingsToDoInEorzea.Conditions.Primary
         public uint? TerritoryTypeRowId { get; set; }
 
         [JsonIgnore]
-        public override int Current => currentCount;
+        public override int Current => PersistentCount;
 
         [JsonIgnore]
         public override IReadOnlySet<Type> AllowedModifierTypes { get; } =
             new HashSet<Type> { typeof(JobCondition) };
 
         // Needed for persistence, no live-game state avail
-        public int PersistentCount
-        {
-            get => currentCount;
-            set => currentCount = value;
-        }
+        public int PersistentCount { get; set; }
 
         public FateClearCondition() { } // For deserialization only
-        public FateClearCondition(FateMatchMode matchMode, int target, uint? fateRowId = null, uint? territoryTypeRowId = null)
+
+        public FateClearCondition(
+            FateMatchMode matchMode, int target, uint? fateRowId = null, uint? territoryTypeRowId = null)
         {
             MatchMode = matchMode;
             Target = target;
@@ -53,24 +49,38 @@ namespace ThingsToDoInEorzea.Conditions.Primary
             if (evt.Type != GameEventType.FateCompleted) return;
             if (!MatchesEvent(evt)) return;
 
-            currentCount++;
+            PersistentCount++;
             NotifyProgressChanged();
         }
+
+        public override void ResetObjectiveProgress()
+        {
+            PersistentCount = 0;
+            NotifyProgressChanged();
+        }
+
         public override EvalSource DescribeActionSource(GameDataServices gameData) => MatchMode switch
         {
             FateMatchMode.SpecificFate => EvalSource.FromAddon(FateClearOnceMacro, [FateRowId ?? 0]),
-            FateMatchMode.AnyInRegion => EvalSource.FromLocKey("action.fate_region", [Target, // TODO: Change Macro back to TerritoryTypeRowId 
-                gameData.TerritoryBrowserService.GetTerritoryPlaceNameRowId(TerritoryTypeRowId ?? 0)]),
+            FateMatchMode.AnyInRegion => EvalSource.FromLocKey("action.fate_region", [
+                Target,
+                // Localized macro resolves its second argument through PlaceName sheet.
+                gameData.TerritoryBrowserService
+                        .GetTerritoryPlaceNameRowId(
+                            TerritoryTypeRowId ?? 0)
+            ]),
             FateMatchMode.AnyFate => EvalSource.FromLocKey("action.fate_any", [Target]),
-            _ => EvalSource.FromMacro(DescribeAction(gameData))
+            _ => EvalSource.FromMacro(DescribeAction())
         };
+
         public override bool IsValid() => MatchMode switch
         {
-            FateMatchMode.SpecificFate => FateRowId.HasValue && FateRowId.Value > 0 && Target > 0,
-            FateMatchMode.AnyInRegion => TerritoryTypeRowId.HasValue && TerritoryTypeRowId.Value > 0 && Target > 0,
+            FateMatchMode.SpecificFate => FateRowId is > 0 && Target > 0,
+            FateMatchMode.AnyInRegion => TerritoryTypeRowId is > 0 && Target > 0,
             FateMatchMode.AnyFate => Target > 0,
             _ => false
         };
+
         private bool MatchesEvent(GameEvent evt) => MatchMode switch
         {
             FateMatchMode.SpecificFate => evt.FateRowId == FateRowId,

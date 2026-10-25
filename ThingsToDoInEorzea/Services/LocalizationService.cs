@@ -48,8 +48,8 @@ namespace ThingsToDoInEorzea.Services
                 var json = reader.ReadToEnd();
                 var parsed = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
                 return parsed != null
-                    ? new Dictionary<string, string>(parsed, StringComparer.OrdinalIgnoreCase)
-                    : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                           ? new Dictionary<string, string>(parsed, StringComparer.OrdinalIgnoreCase)
+                           : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             }
             catch
             {
@@ -86,11 +86,18 @@ namespace ThingsToDoInEorzea.Services
         {
             var activeLanguage = language ?? GetActiveLanguage();
             var template = GetMacro(key, activeLanguage);
-            if (args != null && args.Length > 0)
+            if (args.Length > 0)
             {
-                try { return string.Format(template, args); }
-                catch { return template; }
+                try
+                {
+                    return string.Format(template, args);
+                }
+                catch
+                {
+                    return template;
+                }
             }
+
             return template;
         }
 

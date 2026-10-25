@@ -1,3 +1,4 @@
+using System;
 using System.Text.Json.Serialization;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game;
@@ -17,7 +18,9 @@ namespace ThingsToDoInEorzea.Conditions.Primary
         public bool HighQualityOnly { get; set; }
 
         [JsonIgnore]
-        public override int Current => currentCount;
+        public override int Current => Math.Max(0, FetchCurrentInventoryCount() - BaselineCount);
+
+        public int BaselineCount { get; set; } // Handles daily/weekly collecting
 
         public ItemCountCondition() { } // For deserialization only
 
@@ -29,12 +32,20 @@ namespace ThingsToDoInEorzea.Conditions.Primary
         }
 
         public override void Enable() => RefreshCount();
+
+        public override void ResetObjectiveProgress()
+        {
+            BaselineCount = FetchCurrentInventoryCount();
+            RefreshCount();
+        }
+
         public override void OnGameEvent(GameEvent evt)
         {
             if (evt.Type != GameEventType.InventoryChanged) return;
             if (evt.ItemId != 0 && evt.ItemId != ItemId) return;
             RefreshCount();
         }
+
         private void RefreshCount()
         {
             var newCount = FetchCurrentInventoryCount();
@@ -44,6 +55,7 @@ namespace ThingsToDoInEorzea.Conditions.Primary
                 NotifyProgressChanged();
             }
         }
+
         public override bool IsValid()
         {
             if (ItemId <= 0 || Target <= 0) return false;
@@ -51,15 +63,14 @@ namespace ThingsToDoInEorzea.Conditions.Primary
             // "Feature creep...": If the item is Gil (1) and player is on the 
             // Free Trial, target must be 300,000 or less.
             var onFreeTrial = DalamudServices.Condition[ConditionFlag.OnFreeTrial];
-            if (ItemId == 1 && onFreeTrial && Target > Constants.MaxGilOnFreeTrial)
-                return false;
-
-            return true;
+            return ItemId != 1 || !onFreeTrial || Target <= Constants.MaxGilOnFreeTrial;
         }
+
         public override EvalSource DescribeActionSource(GameDataServices gameData)
         {
             return EvalSource.FromLocKey("action.obtain_item", Target, ItemId);
         }
+
         /// <summary>
         /// Fetches the current count of the specified item in the player's inventory, 
         /// considering high-quality items if specified.
@@ -74,7 +85,7 @@ namespace ThingsToDoInEorzea.Conditions.Primary
             if (HighQualityOnly)
                 return hqCount;
 
-            return manager->GetInventoryItemCount(ItemId, false) + hqCount;
+            return manager->GetInventoryItemCount(ItemId) + hqCount;
         }
     }
 }

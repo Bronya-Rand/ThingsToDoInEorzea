@@ -15,12 +15,12 @@ namespace ThingsToDoInEorzea.Models
     public interface IPrimaryCondition : ITrackCondition
     {
         [JsonIgnore] int Current { get; }
-        int Target { get; set; }
+        int Target { get; }
         [JsonIgnore] bool ShowsProgress { get; }
-        [JsonIgnore] float Progress => (Target <= 0 ? 1f : Math.Clamp((float)Current / Target, 0f, 1f));
         [JsonIgnore] IReadOnlySet<Type> AllowedModifierTypes { get; }
-        string DescribeAction(GameDataServices gameData);
+        string DescribeAction();
         EvalSource DescribeActionSource(GameDataServices gameData);
+        void ResetObjectiveProgress();
         bool IsValid();
     }
 }

@@ -18,7 +18,8 @@ namespace ThingsToDoInEorzea.Conditions.Helpers
         /// <param name="loc">The localization service.</param>
         /// <param name="language">The language to use for localization.</param>
         /// <returns>The resolved string.</returns>
-        public static string Resolve(EvalSource source, ISeStringEvaluator evaluator, LocalizationService loc, ClientLanguage language)
+        public static string Resolve(
+            EvalSource source, ISeStringEvaluator evaluator, LocalizationService loc, ClientLanguage language)
         {
             var seStringParams = ToParameters(source.Args);
 
@@ -26,12 +27,12 @@ namespace ThingsToDoInEorzea.Conditions.Helpers
                 return evaluator.EvaluateFromAddon(source.AddonRowId.Value, seStringParams, language).ExtractText();
 
             var macro = source.LocKey != null
-                ? loc.GetMacro(source.LocKey, language)
-                : source.Macro;
+                            ? loc.GetMacro(source.LocKey, language)
+                            : source.Macro;
 
-            if (string.IsNullOrEmpty(macro)) return string.Empty;
-
-            return evaluator.EvaluateMacroString(macro, seStringParams, language).ExtractText();
+            return string.IsNullOrEmpty(macro)
+                       ? string.Empty
+                       : evaluator.EvaluateMacroString(macro, seStringParams, language).ExtractText();
         }
 
         /// <summary>
@@ -50,8 +51,8 @@ namespace ThingsToDoInEorzea.Conditions.Helpers
         {
             var value = Resolve(segment.ValueSource, evaluator, loc, language);
             var label = segment.HasLabel
-                ? Resolve(segment.LabelSource!.Value, evaluator, loc, language)
-                : null;
+                            ? Resolve(segment.LabelSource!.Value, evaluator, loc, language)
+                            : null;
 
             return (label, value);
         }
@@ -81,9 +82,10 @@ namespace ThingsToDoInEorzea.Conditions.Helpers
                     bool b => b ? 1 : 0,
                     string s => s,
                     SeStringParameter p => p,
-                    _ => arg?.ToString() ?? string.Empty
+                    _ => arg.ToString() ?? string.Empty
                 };
             }
+
             return result;
         }
     }

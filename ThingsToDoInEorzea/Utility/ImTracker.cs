@@ -16,6 +16,7 @@ namespace ThingsToDoInEorzea.Utility
         Center,
         Right,
     }
+
     public static class ObjectiveWindowTextAlignExtensions
     {
         public static string GetName(this ObjectiveWindowTextAlign align) => align switch
@@ -50,7 +51,7 @@ namespace ThingsToDoInEorzea.Utility
             float outlineThickness = 1.0f,
             float wrapWidth = 0.0f, // Use 0.0f for no wrapping
             ObjectiveWindowTextAlign align = ObjectiveWindowTextAlign.Left
-            )
+        )
         {
             var drawList = ImGui.GetWindowDrawList();
             var font = ImGui.GetFont();
@@ -58,14 +59,15 @@ namespace ThingsToDoInEorzea.Utility
             var startCursor = ImGui.GetCursorPos();
 
             var scale = ImGuiHelpers.GlobalScale;
-            var effectiveFontSize = (fontSize > 0.0f ? fontSize : font.FontSize) * scale * AtkUnitBase.GetGlobalUIScale();
+            var effectiveFontSize =
+                (fontSize > 0.0f ? fontSize : font.FontSize) * scale * AtkUnitBase.GetGlobalUIScale();
             var t = outlineThickness * scale;
             var textColorU32 = ImGui.GetColorU32(textColor);
             var outlineColorU32 = ImGui.GetColorU32(outlineColor);
 
             var lines = wrapWidth > 0.0f
-                ? WrapText(text, font, effectiveFontSize, wrapWidth)
-                : [text];
+                            ? WrapText(text, font, effectiveFontSize, wrapWidth)
+                            : [text];
 
             var cursorY = startPos.Y;
             var totalHeight = 0f;
@@ -135,6 +137,7 @@ namespace ThingsToDoInEorzea.Utility
             ImGui.Separator();
             ImGui.Spacing();
         }
+
         public static List<string> WrapText(string text, ImFontPtr font, float fontSize, float wrapWidth)
         {
             var result = new List<string>();
@@ -160,6 +163,7 @@ namespace ThingsToDoInEorzea.Utility
 
             return result.Count == 0 ? [string.Empty] : result;
         }
+
         public static float MeasureWidth(string text, ImFontPtr font, float fontSize)
         {
             var raw = ImGui.CalcTextSize(text);
@@ -201,7 +205,7 @@ namespace ThingsToDoInEorzea.Utility
                 // Use the hover color if mouse is over the icon area
                 var mousePos = ImGui.GetMousePos();
                 var isHovered = mousePos.X >= cursorPos.X && mousePos.X <= cursorPos.X + textSize.X &&
-                           mousePos.Y >= cursorPos.Y && mousePos.Y <= cursorPos.Y + textSize.Y;
+                                mousePos.Y >= cursorPos.Y && mousePos.Y <= cursorPos.Y + textSize.Y;
 
                 var color = isHovered ? highlightColor : defaultColor;
 
@@ -239,11 +243,13 @@ namespace ThingsToDoInEorzea.Utility
             if (x > 0f)
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + x);
         }
+
         public static void CenteredText(string text)
         {
             CenterText(text);
             ImGui.Text(text);
         }
+
         public static void CenteredTextDisabled(string text)
         {
             CenterText(text);
@@ -251,7 +257,7 @@ namespace ThingsToDoInEorzea.Utility
         }
 
         /// <summary>
-        /// Returns a <see cref="ImGui.IsItemHovered"/> with the <see cref="ImGuiHoveredFlags.AllowWhenDisabled"/> flag set.
+        /// Returns a <see cref="ImGui.IsItemHovered(ImGuiHoveredFlags)"/> with the <see cref="ImGuiHoveredFlags.AllowWhenDisabled"/> flag set.
         /// </summary>
         /// <returns></returns>
         public static bool IsItemHoveredWhenDisabled()

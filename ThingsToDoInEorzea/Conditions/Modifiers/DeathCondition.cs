@@ -10,15 +10,16 @@ namespace ThingsToDoInEorzea.Conditions.Modifiers
     public class DeathCondition : ModifierConditionBase
     {
         private int currentDeaths;
-        public int MaxDeaths { get; set; } = 0;
+        public int MaxDeaths { get; set; }
 
         public override ClauseSectionKind Section => ClauseSectionKind.Performance;
         public override bool IsFailed => currentDeaths > MaxDeaths;
+
         protected override void OnDutyStarted(GameEvent evt)
         {
             // Reset the death count and last known result when a duty starts
             currentDeaths = 0;
-            lastKnownResult = null;
+            LastKnownResult = null;
         }
 
         public override bool Matches(GameEvent evt)
@@ -28,22 +29,25 @@ namespace ThingsToDoInEorzea.Conditions.Modifiers
                 case GameEventType.PlayerDied:
                     currentDeaths++;
                     if (currentDeaths > MaxDeaths)
-                        lastKnownResult = false;
+                        LastKnownResult = false;
                     return currentDeaths <= MaxDeaths;
                 case GameEventType.DutyCompleted:
-                    lastKnownResult = currentDeaths <= MaxDeaths;
-                    return lastKnownResult.Value;
+                    LastKnownResult = currentDeaths <= MaxDeaths;
+                    return LastKnownResult.Value;
                 default:
                     return base.Matches(evt);
             }
         }
+
         public override bool IsValid() => MaxDeaths >= 0;
+
         public override ClauseSegment? DescribeSegment(GameDataServices gameData, Configuration configuration)
         {
             return MaxDeaths == 0
-                ? ClauseSegment.ValueOnly(EvalSource.FromLocKey("clause.deaths_none"))
-                : ClauseSegment.ValueOnly(EvalSource.FromLocKey("clause.deaths", currentDeaths, MaxDeaths));
+                       ? ClauseSegment.ValueOnly(EvalSource.FromLocKey("clause.deaths_none"))
+                       : ClauseSegment.ValueOnly(EvalSource.FromLocKey("clause.deaths", currentDeaths, MaxDeaths));
         }
+
         public override string DescribeFailure(GameEvent evt, GameDataServices gameData)
         {
             var deathPlural = currentDeaths == 1 ? "" : "s";

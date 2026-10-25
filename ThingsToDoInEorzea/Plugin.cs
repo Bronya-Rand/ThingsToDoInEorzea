@@ -1,33 +1,41 @@
+using System.Threading;
+using System.Threading.Tasks;
 using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
+using Dalamud.IoC;
 using Dalamud.Plugin;
 using ThingsToDoInEorzea.Services;
 using ThingsToDoInEorzea.Windows;
 
 namespace ThingsToDoInEorzea;
 
-public sealed class Plugin : IDalamudPlugin
+public sealed class Plugin : IAsyncDalamudPlugin
 {
     private const string CommandName = "/ttd";
     private const string WindowCommandName = "/ttd window";
 
-    public Configuration Configuration { get; init; }
-    public GameDataServices GameDataServices { get; init; }
-    public ObjectiveTrackerService Tracker { get; init; }
-    public HookService HookService { get; init; }
-    public ObjectiveDispatchService DispatchService { get; init; }
+    [PluginService]
+    internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
+
+    public Configuration Configuration { get; private set; } = null!;
+    public GameDataServices GameDataServices { get; private set; } = null!;
+    public ObjectiveTrackerService Tracker { get; private set; } = null!;
+    public HookService HookService { get; private set; } = null!;
+    public ObjectiveDispatchService DispatchService { get; private set; } = null!;
 
     public readonly WindowSystem WindowSystem = new("Things To Do In Eorzea");
-    private ConfigWindow ConfigWindow { get; init; }
-    private MainWindow MainWindow { get; init; }
-    public ObjectiveWindow ObjectiveWindow { get; init; }
+    private ConfigWindow ConfigWindow { get; set; } = null!;
+    private MainWindow MainWindow { get; set; } = null!;
+    public ObjectiveWindow ObjectiveWindow { get; private set; } = null!;
 
-    public Plugin(IDalamudPluginInterface pluginInterface)
+    public Task LoadAsync(CancellationToken cancellationToken)
     {
-        // Initialize Dalamud services
-        pluginInterface.Create<DalamudServices>();
+        cancellationToken.ThrowIfCancellationRequested();
 
-        Configuration = DalamudServices.PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+        // Initialize Dalamud services
+        PluginInterface.Create<DalamudServices>();
+
+        Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
         // Initialize services
         GameDataServices = new GameDataServices(
@@ -61,21 +69,23 @@ public sealed class Plugin : IDalamudPlugin
             HelpMessage = "Opens the objective window (if closed accidentally)."
         });
 
-        DalamudServices.PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
-        DalamudServices.PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
-        DalamudServices.PluginInterface.UiBuilder.OpenMainUi += ToggleMainUi;
+        PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
+        PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
+        PluginInterface.UiBuilder.OpenMainUi += ToggleMainUi;
+
+        return Task.CompletedTask;
     }
 
-    public void Dispose()
+    public ValueTask DisposeAsync()
     {
         DispatchService.Dispose();
         HookService.Dispose();
         Tracker.Dispose();
         GameDataServices.Dispose();
 
-        DalamudServices.PluginInterface.UiBuilder.Draw -= WindowSystem.Draw;
-        DalamudServices.PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUi;
-        DalamudServices.PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUi;
+        PluginInterface.UiBuilder.Draw -= WindowSystem.Draw;
+        PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUi;
+        PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUi;
 
         WindowSystem.RemoveAllWindows();
 
@@ -84,6 +94,8 @@ public sealed class Plugin : IDalamudPlugin
         ObjectiveWindow.Dispose();
 
         DalamudServices.CommandManager.RemoveHandler(CommandName);
+
+        return ValueTask.CompletedTask;
     }
 
     private void OnCommand(string command, string args) => MainWindow.Toggle();

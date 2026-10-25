@@ -7,12 +7,12 @@ namespace ThingsToDoInEorzea.Services.Browser
 {
     public sealed class GameItem
     {
-        public uint RowId { get; set; }
-        public string SingularName { get; set; } = string.Empty;
-        public string PluralName { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
-        public bool CanBeHq { get; set; }
-        public uint MaxStackSize { get; set; }
+        public uint RowId { get; init; }
+        public string SingularName { get; init; } = string.Empty;
+        public string PluralName { get; init; } = string.Empty;
+        public string Name { get; init; } = string.Empty;
+        public bool CanBeHq { get; init; }
+        public uint MaxStackSize { get; init; }
     }
     public sealed class ItemBrowserService(IDataManager dataManager, ISeStringEvaluator seStringEvaluator, Configuration configuration, ClientLanguage? overrideLanguage = null) : LuminaBrowserService<GameItem, Item>(dataManager, seStringEvaluator, configuration, overrideLanguage)
     {
@@ -24,7 +24,7 @@ namespace ThingsToDoInEorzea.Services.Browser
 
             if (id == 0 || name.IsNullOrEmpty() || stackSize == 0)
             {
-                entity = default!;
+                entity = null!;
                 return false;
             }
 
@@ -39,9 +39,6 @@ namespace ThingsToDoInEorzea.Services.Browser
             };
             return true;
         }
-        public string GetItemName(uint itemId) => TryGet(itemId, out var item) ? item!.Name : $"Unknown Item ({itemId})";
-        public string GetItemSingularName(uint itemId) => TryGet(itemId, out var item) ? item!.SingularName : $"Unknown Item ({itemId})";
-        public string GetItemPluralName(uint itemId) => TryGet(itemId, out var item) ? item!.PluralName : $"Unknown Item ({itemId})";
         public uint GetItemStackSize(uint itemId) => TryGet(itemId, out var item) ? item!.MaxStackSize : 0;
     }
 }

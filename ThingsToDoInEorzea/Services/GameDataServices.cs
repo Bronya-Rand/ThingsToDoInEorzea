@@ -17,14 +17,16 @@ namespace ThingsToDoInEorzea.Services
         public LocalizationService Localization { get; } = new();
         public NotificationService NotificationService { get; }
 
-        public GameDataServices(IDataManager dataManager, ISeStringEvaluator seStringEvaluator, IGameInventory gameInventory, IPlayerState playerState, Configuration configuration)
+        public GameDataServices(
+            IDataManager dataManager, ISeStringEvaluator seStringEvaluator, IGameInventory gameInventory,
+            IPlayerState playerState, Configuration configuration)
         {
-            ItemBrowserService = new(dataManager, seStringEvaluator, configuration);
-            DutyBrowserService = new(dataManager, seStringEvaluator, configuration);
-            JobBrowserService = new(dataManager, seStringEvaluator, gameInventory, playerState, configuration);
-            TerritoryBrowserService = new(dataManager, seStringEvaluator, configuration);
-            FateBrowserService = new(dataManager, seStringEvaluator, configuration);
-            NotificationService = new(Localization);
+            ItemBrowserService = new ItemBrowserService(dataManager, seStringEvaluator, configuration);
+            DutyBrowserService = new DutyBrowserService(dataManager, seStringEvaluator, configuration);
+            JobBrowserService = new JobBrowserService(dataManager, seStringEvaluator, gameInventory, playerState, configuration);
+            TerritoryBrowserService = new TerritoryBrowserService(dataManager, seStringEvaluator, configuration);
+            FateBrowserService = new FateBrowserService(dataManager, seStringEvaluator, configuration);
+            NotificationService = new NotificationService(Localization);
         }
 
         public void Dispose()
