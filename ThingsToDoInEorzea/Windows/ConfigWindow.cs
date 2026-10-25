@@ -54,6 +54,9 @@ public class ConfigWindow : Window, IDisposable
                 {
                     configuration.LanguageOverride = null;
                     configuration.Save();
+
+                    foreach (var obj in plugin.Tracker.Objectives)
+                        obj.InvalidateCachedDescription();
                 }
 
                 foreach (var lang in Enum.GetValues<ClientLanguage>())

@@ -3,8 +3,10 @@ using Dalamud.Plugin.Services;
 
 namespace ThingsToDoInEorzea
 {
-    internal abstract class DalamudServices
+    internal sealed class DalamudServices
     {
+        public DalamudServices() { }
+
         [PluginService]
         internal static ICommandManager CommandManager { get; private set; } = null!;
 

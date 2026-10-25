@@ -92,6 +92,13 @@ public class ObjectiveWindow : Window, IDisposable
     private void DrawObjectiveList()
     {
         var allObjectives = plugin.Tracker.Objectives;
+        if (activeFilter != ObjectiveFilter.All &&
+            allObjectives.All(o => o.Recurrence == ResetInterval.None))
+        {
+            activeFilter = ObjectiveFilter.All;
+            currentPage = 0;
+        }
+
         if (allObjectives.Count == 0)
         {
             ImGui.TextDisabled("No objectives to display.");

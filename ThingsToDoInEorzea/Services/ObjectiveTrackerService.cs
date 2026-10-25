@@ -136,6 +136,7 @@ namespace ThingsToDoInEorzea.Services
                     Timers.NeedsReset(objective.Recurrence, objective.LastResetAt))
                 {
                     objective.Primary.ResetObjectiveProgress();
+                    objective.InvalidateCachedDescription();
                     objective.LastResetAt = DateTime.UtcNow;
                     if (!objective.IsComplete)
                         EnableObjective(objective);
