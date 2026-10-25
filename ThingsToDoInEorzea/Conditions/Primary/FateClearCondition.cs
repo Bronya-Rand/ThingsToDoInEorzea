@@ -63,7 +63,8 @@ namespace ThingsToDoInEorzea.Conditions.Primary
         {
             FateMatchMode.SpecificFate => EvalSource.FromAddon(FateClearOnceMacro, [FateRowId ?? 0]),
             FateMatchMode.AnyInRegion => EvalSource.FromLocKey("action.fate_region", [
-                Target, // TODO: Change Macro back to TerritoryTypeRowId 
+                Target,
+                // Localized macro resolves its second argument through PlaceName sheet.
                 gameData.TerritoryBrowserService
                         .GetTerritoryPlaceNameRowId(
                             TerritoryTypeRowId ?? 0)
