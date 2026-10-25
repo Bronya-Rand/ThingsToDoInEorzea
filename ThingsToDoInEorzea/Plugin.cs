@@ -14,7 +14,8 @@ public sealed class Plugin : IAsyncDalamudPlugin
     private const string CommandName = "/ttd";
     private const string WindowCommandName = "/ttd window";
 
-    [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
+    [PluginService]
+    internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
 
     public Configuration Configuration { get; private set; } = null!;
     public GameDataServices GameDataServices { get; private set; } = null!;
@@ -30,7 +31,7 @@ public sealed class Plugin : IAsyncDalamudPlugin
     public Task LoadAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        
+
         // Initialize Dalamud services
         PluginInterface.Create<DalamudServices>();
 
@@ -71,11 +72,11 @@ public sealed class Plugin : IAsyncDalamudPlugin
         PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
         PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
         PluginInterface.UiBuilder.OpenMainUi += ToggleMainUi;
-        
+
         return Task.CompletedTask;
     }
 
-    public ValueTask DisposeAsync() 
+    public ValueTask DisposeAsync()
     {
         DispatchService.Dispose();
         HookService.Dispose();
@@ -93,7 +94,7 @@ public sealed class Plugin : IAsyncDalamudPlugin
         ObjectiveWindow.Dispose();
 
         DalamudServices.CommandManager.RemoveHandler(CommandName);
-        
+
         return ValueTask.CompletedTask;
     }
 

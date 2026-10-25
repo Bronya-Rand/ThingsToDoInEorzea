@@ -29,7 +29,7 @@ internal sealed class EntityFileStore<T> where T : class
     private readonly IReliableFileStorage reliableFileStorage;
     private readonly string directory;
     private readonly Func<T, Guid> getId; // Gets the GUID of the entity, determining filename
-    private readonly string storeName; // For logging clarity (e.g., "Marker", "Group", "Template")
+    private readonly string storeName;    // For logging clarity (e.g., "Marker", "Group", "Template")
 
     /// <summary>
     /// Tracks in-progress async save tasks per file path.
@@ -52,7 +52,8 @@ internal sealed class EntityFileStore<T> where T : class
     /// </param>
     /// <param name="getId">Function that extracts the GUID from an entity instance.</param>
     /// <param name="storeName">Human-readable name for logging (e.g., "Marker", "Group").</param>
-    public EntityFileStore(IReliableFileStorage reliableFileStorage, string directory, Func<T, Guid> getId, string storeName)
+    public EntityFileStore(
+        IReliableFileStorage reliableFileStorage, string directory, Func<T, Guid> getId, string storeName)
     {
         this.reliableFileStorage = reliableFileStorage;
         this.directory = directory;
@@ -92,10 +93,14 @@ internal sealed class EntityFileStore<T> where T : class
 
                 // Use the reader-callback overload: if the reader throws (e.g., bad JSON),
                 // IReliableFileStorage will automatically retry with its DB backup copy.
-                reliableFileStorage.ReadAllTextAsync(filePath, json =>
-                {
-                    entity = JsonSerializer.Deserialize<T>(json, EntityFileStoreJson.Options) ?? throw new JsonException("Deserialized to null");
-                }).GetAwaiter().GetResult();
+                reliableFileStorage
+                    .ReadAllTextAsync(
+                        filePath,
+                        json =>
+                        {
+                            entity = JsonSerializer.Deserialize<T>(json, EntityFileStoreJson.Options) ??
+                                     throw new JsonException("Deserialized to null");
+                        }).GetAwaiter().GetResult();
 
                 if (entity != null && (meetsCriteria == null || meetsCriteria(entity)))
                     Items.Add(entity);
@@ -103,11 +108,13 @@ internal sealed class EntityFileStore<T> where T : class
             catch (FileNotFoundException)
             {
                 // File was deleted between Directory.GetFiles() and read — skip silently
-                DalamudServices.Log.Debug($"[{storeName}Store] File disappeared before read: '{Path.GetFileName(filePath)}'");
+                DalamudServices.Log.Debug(
+                    $"[{storeName}Store] File disappeared before read: '{Path.GetFileName(filePath)}'");
             }
             catch (Exception ex)
             {
-                DalamudServices.Log.Error($"[{storeName}Store] Failed to load '{Path.GetFileName(filePath)}': {ex.Message}");
+                DalamudServices.Log.Error(
+                    $"[{storeName}Store] Failed to load '{Path.GetFileName(filePath)}': {ex.Message}");
             }
         }
 
@@ -139,13 +146,15 @@ internal sealed class EntityFileStore<T> where T : class
                     fileSavingTasks[path] = reliableFileStorage.WriteAllTextAsync(path, json);
                 else if (existingTask.IsFaulted)
                 {
-                    DalamudServices.Log.Warning($"[{storeName}Store] Previous save for '{id}' faulted: {existingTask.Exception?.Message}. Retrying...");
+                    DalamudServices.Log.Warning(
+                        $"[{storeName}Store] Previous save for '{id}' faulted: {existingTask.Exception?.Message}. Retrying...");
                     fileSavingTasks[path] = reliableFileStorage.WriteAllTextAsync(path, json);
                 }
                 else
                 {
                     // Previous save still running — defer to next framework tick
-                    DalamudServices.Log.Debug($"[{storeName}Store] Save for '{id}' in progress, deferring to next tick.");
+                    DalamudServices.Log.Debug(
+                        $"[{storeName}Store] Save for '{id}' in progress, deferring to next tick.");
                     DalamudServices.Framework.Run(() => Save(entity));
                     return; // Don't update cache
                 }
@@ -208,11 +217,6 @@ internal sealed class EntityFileStore<T> where T : class
     /// <param name="id">The GUID to search for.</param>
     /// <returns>The entity if found, null otherwise.</returns>
     public T? FindById(Guid id) => Items.Find(item => getId(item) == id);
-
-    /// <summary>
-    /// Checks whether an entity with the given GUID exists in the in-memory cache.
-    /// </summary>
-    public bool Contains(Guid id) => Items.Exists(item => getId(item) == id);
 
     public void Clear() => Items.Clear();
 

@@ -18,11 +18,17 @@ namespace ThingsToDoInEorzea.Models
         void Enable();
         void Disable();
 
-        [JsonIgnore] bool CheckOnStart { get; }
+        [JsonIgnore]
+        bool CheckOnStart { get; }
 
-        [JsonIgnore] ClauseSectionKind Section { get; }
-        [JsonIgnore] float? Progress { get; }
-        [JsonIgnore] bool IsFailed => false;
+        [JsonIgnore]
+        ClauseSectionKind Section { get; }
+
+        [JsonIgnore]
+        float? Progress { get; }
+
+        [JsonIgnore]
+        bool IsFailed => false;
 
         bool Matches(GameEvent evt);
         bool Matches(GameEvent evt, GameDataServices gameData, Configuration configuration);

@@ -6,14 +6,18 @@ namespace ThingsToDoInEorzea.Models
         Daily,
         Weekly,
     }
+
     public static class ResetIntervalExtensions
     {
-        public static string ToFriendlyString(this ResetInterval interval) => interval switch
+        extension(ResetInterval interval)
         {
-            ResetInterval.None => "None",
-            ResetInterval.Daily => "Daily",
-            ResetInterval.Weekly => "Weekly",
-            _ => "Unknown"
-        };
+            public string ToFriendlyString() => interval switch
+            {
+                ResetInterval.None => "None",
+                ResetInterval.Daily => "Daily",
+                ResetInterval.Weekly => "Weekly",
+                _ => "Unknown"
+            };
+        }
     }
 }

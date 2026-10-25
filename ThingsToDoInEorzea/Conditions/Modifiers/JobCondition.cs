@@ -16,6 +16,7 @@ namespace ThingsToDoInEorzea.Conditions.Modifiers
 
         public override ClauseSectionKind Section => ClauseSectionKind.Requirements;
         public override bool CheckOnStart => true;
+
         public override bool Matches(GameEvent evt, GameDataServices gameData, Configuration configuration)
         {
             switch (evt.Type)
@@ -23,17 +24,18 @@ namespace ThingsToDoInEorzea.Conditions.Modifiers
                 case GameEventType.DutyStarted:
                 case GameEventType.DutyCompleted:
                 case GameEventType.FateCompleted:
-                    {
-                        if (evt.ClassJobId == null) return false;
-                        var jobId = evt.ClassJobId.Value;
-                        var effectiveTargetJobId = gameData.JobBrowserService.GetEffectiveJobId(ClassJobId);
-                        lastKnownResult = JobBrowserService.MatchesJob(jobId, effectiveTargetJobId);
-                        return lastKnownResult.Value;
-                    }
+                {
+                    if (evt.ClassJobId == null) return false;
+                    var jobId = evt.ClassJobId.Value;
+                    var effectiveTargetJobId = gameData.JobBrowserService.GetEffectiveJobId(ClassJobId);
+                    LastKnownResult = JobBrowserService.MatchesJob(jobId, effectiveTargetJobId);
+                    return LastKnownResult.Value;
+                }
                 default:
                     return base.Matches(evt);
             }
         }
+
         public override bool IsValid() => ClassJobId > 0;
 
         public override ClauseSegment? DescribeSegment(GameDataServices gameData, Configuration configuration)

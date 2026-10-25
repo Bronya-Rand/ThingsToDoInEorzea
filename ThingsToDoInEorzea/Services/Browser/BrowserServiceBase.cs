@@ -28,6 +28,7 @@ namespace ThingsToDoInEorzea.Services.Browser
             this.Configuration = configuration;
             DalamudServices.Framework.Run(() => LoadInternal(cts.Token));
         }
+
         private void LoadInternal(CancellationToken token)
         {
             try
@@ -46,6 +47,7 @@ namespace ThingsToDoInEorzea.Services.Browser
         protected abstract void LoadData(CancellationToken token);
         public virtual bool TryGet(TKey id, out TEntity? entity) => Entries.TryGetValue(id, out entity);
         public virtual IEnumerable<TEntity> GetAll() => Entries.Values;
+
         public virtual void Dispose()
         {
             cts.Cancel();

@@ -55,10 +55,10 @@ public class ObjectiveWindow : Window, IDisposable
 
     public ObjectiveWindow(Plugin plugin)
         : base("Objective HUD##ObjectiveWindow",
-            ImGuiWindowFlags.NoTitleBar |
-            ImGuiWindowFlags.NoScrollbar |
-            ImGuiWindowFlags.NoScrollWithMouse |
-            ImGuiWindowFlags.AlwaysAutoResize)
+               ImGuiWindowFlags.NoTitleBar |
+               ImGuiWindowFlags.NoScrollbar |
+               ImGuiWindowFlags.NoScrollWithMouse |
+               ImGuiWindowFlags.AlwaysAutoResize)
     {
         IsOpen = true; // Open/visible by default
         ForceMainWindow = true;
@@ -88,6 +88,7 @@ public class ObjectiveWindow : Window, IDisposable
         DrawObjectiveList();
         deleteModal.Draw();
     }
+
     private void DrawObjectiveList()
     {
         var allObjectives = plugin.Tracker.Objectives;
@@ -112,25 +113,27 @@ public class ObjectiveWindow : Window, IDisposable
             }
             else
             {
-                var pageCount = (int)Math.Ceiling((float)filtered.Count / (float)ObjectivesPerPage);
+                var pageCount = (int)Math.Ceiling((double)filtered.Count / ObjectivesPerPage);
                 currentPage = Math.Clamp(currentPage, 0, pageCount - 1);
                 var pageObjectives = filtered.Skip(currentPage * ObjectivesPerPage).Take(ObjectivesPerPage).ToList();
 
                 var align = plugin.Configuration.ObjectiveWindowTextAlignment;
                 var wrapWidth = ImGui.GetContentRegionAvail().X;
 
-                for (var i = 0; i < pageObjectives.Count; i++)
+                foreach (var objective in pageObjectives)
                 {
-                    var objective = pageObjectives[i];
                     DrawObjective(objective, wrapWidth, align);
                     ImGui.Spacing();
                 }
+
                 if (pageCount > 1)
                     DrawPageControls(pageCount);
             }
         }
+
         DrawEditModeFooter();
     }
+
     private void DrawFilterHeader(IReadOnlyCollection<TodoObjective> allObjectives)
     {
         var dailyCount = allObjectives.Count(o => o.Recurrence == ResetInterval.Daily);
@@ -146,8 +149,7 @@ public class ObjectiveWindow : Window, IDisposable
             (ObjectiveFilter.Daily, $"Daily ({dailyCount})"),
             (ObjectiveFilter.Weekly, $"Weekly ({weeklyCount})"),
         };
-
-        var style = ImGui.GetStyle();
+        
         var spacing = 12f * ImGuiHelpers.GlobalScale;
 
         // Calculate total width of all filter labels and spacing
@@ -177,10 +179,10 @@ public class ObjectiveWindow : Window, IDisposable
                             mousePos.Y >= cursorPos.Y && mousePos.Y <= cursorPos.Y + labelSize.Y;
 
             var color = isSelected
-                ? ImGuiColors.DalamudYellow
-                : isHovered
-                    ? ImGuiColors.DalamudWhite
-                    : ImGuiColors.DalamudGrey;
+                            ? ImGuiColors.DalamudYellow
+                            : isHovered
+                                ? ImGuiColors.DalamudWhite
+                                : ImGuiColors.DalamudGrey;
 
             using (ImRaii.PushId($"FilterTab_{filter}"))
             using (ImRaii.PushColor(ImGuiCol.Text, color))
@@ -204,16 +206,17 @@ public class ObjectiveWindow : Window, IDisposable
 
         ImTracker.SpacedSeparator();
     }
+
     private void DrawObjective(TodoObjective objective, float wrapWidth, ObjectiveWindowTextAlign align)
     {
         var isComplete = objective.IsComplete;
         var isFailed = objective.IsFailed;
 
         var titleOutlineColor = isComplete
-            ? Constants.GreenOutlineColor
-            : isFailed
-                ? Constants.RedOutlineColor
-                : Constants.GoldOutlineColor;
+                                    ? Constants.GreenOutlineColor
+                                    : isFailed
+                                        ? Constants.RedOutlineColor
+                                        : Constants.GoldOutlineColor;
 
         var displayTitle = objective.Title.IsNullOrEmpty() ? "Untitled Objective" : objective.Title;
 
@@ -252,40 +255,40 @@ public class ObjectiveWindow : Window, IDisposable
         switch (align)
         {
             case ObjectiveWindowTextAlign.Left:
-                {
-                    DrawIcon(iconString, new Vector2(baseX, titleRowCursor.Y), Constants.TitleTextSize);
-                    ImGui.SetCursorPos(new Vector2(baseX + iconWidth + itemSpacing, titleRowCursor.Y));
-                    ImTracker.OutlinedText(
-                        displayTitle, ImGuiColors.DalamudWhite, titleOutlineColor,
-                        Constants.TitleTextSize, wrapWidth: maxTitleWrapWidth, align: ObjectiveWindowTextAlign.Left);
-                    break;
-                }
+            {
+                DrawIcon(iconString, new Vector2(baseX, titleRowCursor.Y), Constants.TitleTextSize);
+                ImGui.SetCursorPos(new Vector2(baseX + iconWidth + itemSpacing, titleRowCursor.Y));
+                ImTracker.OutlinedText(
+                    displayTitle, ImGuiColors.DalamudWhite, titleOutlineColor,
+                    Constants.TitleTextSize, wrapWidth: maxTitleWrapWidth, align: ObjectiveWindowTextAlign.Left);
+                break;
+            }
 
             case ObjectiveWindowTextAlign.Center:
-                {
-                    var startX = Math.Max(0f, (availableWidth - totalUnitWidth) / 2f);
-                    DrawIcon(iconString, new Vector2(baseX + startX, titleRowCursor.Y), Constants.TitleTextSize);
-                    ImGui.SetCursorPos(new Vector2(baseX + startX + iconWidth + itemSpacing, titleRowCursor.Y));
-                    ImTracker.OutlinedText(
-                        displayTitle, ImGuiColors.DalamudWhite, titleOutlineColor,
-                        Constants.TitleTextSize, wrapWidth: maxLineWidth, align: ObjectiveWindowTextAlign.Center);
-                    break;
-                }
+            {
+                var startX = Math.Max(0f, (availableWidth - totalUnitWidth) / 2f);
+                DrawIcon(iconString, new Vector2(baseX + startX, titleRowCursor.Y), Constants.TitleTextSize);
+                ImGui.SetCursorPos(new Vector2(baseX + startX + iconWidth + itemSpacing, titleRowCursor.Y));
+                ImTracker.OutlinedText(
+                    displayTitle, ImGuiColors.DalamudWhite, titleOutlineColor,
+                    Constants.TitleTextSize, wrapWidth: maxLineWidth, align: ObjectiveWindowTextAlign.Center);
+                break;
+            }
 
             case ObjectiveWindowTextAlign.Right:
-                {
-                    if (isComplete)
-                        using (ImRaii.Disabled(editMode))
-                            DrawRemoveButton(objective, titleRowCursor.X, editMode);
+            {
+                if (isComplete)
+                    using (ImRaii.Disabled(editMode))
+                        DrawRemoveButton(objective, titleRowCursor.X, editMode);
 
-                    var iconX = baseX + availableWidth - iconWidth;
-                    DrawIcon(iconString, new Vector2(iconX, titleRowCursor.Y), Constants.TitleTextSize);
-                    ImGui.SetCursorPos(new Vector2(baseX, titleRowCursor.Y));
-                    ImTracker.OutlinedText(
-                        displayTitle, ImGuiColors.DalamudWhite, titleOutlineColor,
-                        Constants.TitleTextSize, wrapWidth: maxTitleWrapWidth, align: ObjectiveWindowTextAlign.Right);
-                    break;
-                }
+                var iconX = baseX + availableWidth - iconWidth;
+                DrawIcon(iconString, new Vector2(iconX, titleRowCursor.Y), Constants.TitleTextSize);
+                ImGui.SetCursorPos(new Vector2(baseX, titleRowCursor.Y));
+                ImTracker.OutlinedText(
+                    displayTitle, ImGuiColors.DalamudWhite, titleOutlineColor,
+                    Constants.TitleTextSize, wrapWidth: maxTitleWrapWidth, align: ObjectiveWindowTextAlign.Right);
+                break;
+            }
         }
 
         // Display the remove button on the far right if complete and not on left
@@ -324,6 +327,7 @@ public class ObjectiveWindow : Window, IDisposable
         {
             ImGui.TextColored(ImGuiColors.DalamudWhite, iconString);
         }
+
         ImGui.SetCursorPos(restoreCursor);
     }
 
@@ -332,21 +336,23 @@ public class ObjectiveWindow : Window, IDisposable
         var restoreCursor = ImGui.GetCursorPos();
         ImGui.SetCursorPosX(posX);
         if (ImTracker.DrawClickableIcon(
-            $"###RemoveObjective_{objective.Id}",
-            FontAwesomeIcon.Times,
-            "Remove Objective",
-            (disabled ? ImGuiColors.DalamudGrey3 : ImGuiColors.DalamudGrey),
-            (disabled ? ImGuiColors.DalamudGrey3 : ImGuiColors.DalamudRed)
+                $"###RemoveObjective_{objective.Id}",
+                FontAwesomeIcon.Times,
+                "Remove Objective",
+                disabled ? ImGuiColors.DalamudGrey3 : ImGuiColors.DalamudGrey,
+                disabled ? ImGuiColors.DalamudGrey3 : ImGuiColors.DalamudRed
             ))
         {
             deleteModal.Open(objective);
         }
+
         ImGui.SetCursorPos(restoreCursor);
     }
+
     private static void DrawObjectiveTimerBar(TodoObjective objective)
     {
         var timerModifier = objective.Modifiers.OfType<TimerCondition>().FirstOrDefault();
-        if (timerModifier == null || !timerModifier.IsRunning)
+        if (timerModifier is not { IsRunning: true })
             return;
 
         var fraction = (float)timerModifier.Progress!;
@@ -357,6 +363,7 @@ public class ObjectiveWindow : Window, IDisposable
             ImGui.ProgressBar(fraction, new Vector2(-1, TimerHeight * ImGuiHelpers.GlobalScale), string.Empty);
         }
     }
+
     private static Vector4 GetTimerColor(float progress, bool isExpired)
     {
         if (isExpired)
@@ -365,6 +372,7 @@ public class ObjectiveWindow : Window, IDisposable
             return ImGuiColors.DalamudOrange;
         return Constants.GreenOutlineColor;
     }
+
     private void DrawPageControls(int pageCount)
     {
         ImTracker.SpacedSeparator();
@@ -375,7 +383,8 @@ public class ObjectiveWindow : Window, IDisposable
         float buttonWidth;
         using (ImRaii.PushFont(UiBuilder.IconFont))
         {
-            buttonWidth = ImGui.CalcTextSize(FontAwesomeIcon.ChevronLeft.ToIconString()).X + (ImGui.GetStyle().FramePadding.X * 2f);
+            buttonWidth = ImGui.CalcTextSize(FontAwesomeIcon.ChevronLeft.ToIconString()).X +
+                          (ImGui.GetStyle().FramePadding.X * 2f);
         }
 
         var spacing = ImGui.GetStyle().ItemSpacing.X;
@@ -402,6 +411,7 @@ public class ObjectiveWindow : Window, IDisposable
                 currentPage++;
         }
     }
+
     private void DrawEditModeFooter()
     {
         if (!DalamudServices.ClientState.IsLoggedIn) return;
@@ -427,11 +437,11 @@ public class ObjectiveWindow : Window, IDisposable
 
         // Display a small, transparent "Edit" button in the bottom right corner to toggle edit mode
         if (ImTracker.DrawClickableIcon(
-            "###ToggleEditMode",
-            FontAwesomeIcon.Edit,
-            editMode ? "Lock HUD Position" : "Unlock HUD Position",
-            activeColor: new Vector4(1.0f, 1.0f, 1.0f, 0.35f),
-            hoverColor: ImGuiColors.DalamudYellow))
+                "###ToggleEditMode",
+                FontAwesomeIcon.Edit,
+                editMode ? "Lock HUD Position" : "Unlock HUD Position",
+                activeColor: new Vector4(1.0f, 1.0f, 1.0f, 0.35f),
+                hoverColor: ImGuiColors.DalamudYellow))
         {
             editMode = !editMode;
         }

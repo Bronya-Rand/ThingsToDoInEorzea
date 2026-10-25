@@ -18,13 +18,14 @@ namespace ThingsToDoInEorzea.Services
         private readonly Configuration configuration;
 
         private readonly EntityFileStore<TodoObjective> objectiveStore;
-        private static readonly string ObjectivesDirectory = Path.Combine(Plugin.PluginInterface.ConfigDirectory.FullName, "objectives");
 
-        public event Action? OnObjectivesChanged;
+        private static readonly string ObjectivesDirectory =
+            Path.Combine(Plugin.PluginInterface.ConfigDirectory.FullName, "objectives");
 
         public IReadOnlyCollection<TodoObjective> Objectives => GetObjectives();
 
-        public ObjectiveTrackerService(GameDataServices gameData, Configuration configuration, IReliableFileStorage reliableFileStorage)
+        public ObjectiveTrackerService(
+            GameDataServices gameData, Configuration configuration, IReliableFileStorage reliableFileStorage)
         {
             this.gameData = gameData;
             this.configuration = configuration;
@@ -36,7 +37,7 @@ namespace ThingsToDoInEorzea.Services
                 ObjectivesDirectory,
                 o => o.Id,
                 "Objectives"
-                );
+            );
 
             DalamudServices.ClientState.Login += OnLogin;
             DalamudServices.ClientState.Logout += OnLogout;
@@ -78,8 +79,8 @@ namespace ThingsToDoInEorzea.Services
                 objective.Disable();
                 objective.Dispose();
             }
+
             objectiveStore.Clear();
-            OnObjectivesChanged?.Invoke();
         }
 
         private void LoadObjectives()
@@ -93,10 +94,10 @@ namespace ThingsToDoInEorzea.Services
                     EnableObjective(objective);
 
             UpgradeObjectiveJobs();
-            OnObjectivesChanged?.Invoke();
         }
 
-        private List<TodoObjective> GetObjectives() => !DalamudServices.ClientState.IsLoggedIn ? [] : objectiveStore.Items;
+        private List<TodoObjective> GetObjectives() =>
+            !DalamudServices.ClientState.IsLoggedIn ? [] : objectiveStore.Items;
 
         public void AddObjective(TodoObjective objective)
         {
@@ -104,7 +105,6 @@ namespace ThingsToDoInEorzea.Services
             objectiveStore.Save(objective);
             if (!objective.IsComplete)
                 EnableObjective(objective);
-            OnObjectivesChanged?.Invoke();
         }
 
         public void RemoveObjective(Guid id)
@@ -117,7 +117,6 @@ namespace ThingsToDoInEorzea.Services
             objective.Dispose();
 
             objectiveStore.Delete(id);
-            OnObjectivesChanged?.Invoke();
         }
 
         public void EnableObjective(TodoObjective objective)
@@ -129,12 +128,12 @@ namespace ThingsToDoInEorzea.Services
 
         private void CheckRecurrentObjectivesForReset()
         {
-            var anyReset = false;
             var objectiveStoreCopy = objectiveStore.Items.ToList(); // Snapshot
 
             foreach (var objective in objectiveStoreCopy)
             {
-                if (objective.Recurrence != ResetInterval.None && Timers.NeedsReset(objective.Recurrence, objective.LastResetAt))
+                if (objective.Recurrence != ResetInterval.None &&
+                    Timers.NeedsReset(objective.Recurrence, objective.LastResetAt))
                 {
                     objective.Primary.ResetObjectiveProgress();
                     objective.LastResetAt = DateTime.UtcNow;
@@ -142,12 +141,8 @@ namespace ThingsToDoInEorzea.Services
                         EnableObjective(objective);
 
                     objectiveStore.Save(objective);
-                    anyReset = true;
                 }
             }
-
-            if (anyReset)
-                OnObjectivesChanged?.Invoke();
         }
 
         /// <summary>
@@ -163,7 +158,6 @@ namespace ThingsToDoInEorzea.Services
             }
 
             objectiveStore.Save(objective);
-            OnObjectivesChanged?.Invoke();
         }
 
         /// <summary>
@@ -190,6 +184,7 @@ namespace ThingsToDoInEorzea.Services
                 }
             }
         }
+
         public void Dispose()
         {
             DalamudServices.ClientState.Login -= OnLogin;

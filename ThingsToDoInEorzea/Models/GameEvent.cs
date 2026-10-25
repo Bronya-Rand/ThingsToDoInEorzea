@@ -10,7 +10,7 @@ namespace ThingsToDoInEorzea.Models
         public uint? ContentFinderConditionId { get; init; }
         public uint? ClassJobId { get; init; }
         public uint? ItemId { get; init; }
-        public bool? IsHQ { get; init; }
+        public bool? IsHq { get; init; }
         public int? Quantity { get; init; }
 
         #region Condition-related properties

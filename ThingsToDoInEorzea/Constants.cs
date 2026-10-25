@@ -10,10 +10,13 @@ namespace ThingsToDoInEorzea
 
         // Blue Edge Color (#0a6992ff) [based on 
         public static readonly Vector4 BlueOutlineColor = new(0.039f, 0.412f, 0.573f, 1f);
+
         // Gold Edge Color (#8e6a0cff) [from 
         public static readonly Vector4 GoldOutlineColor = new(0.557f, 0.416f, 0.047f, 1f);
+
         // Green Edge Color
         public static readonly Vector4 GreenOutlineColor = KnownColor.DarkGreen.Vector();
+
         // Red Edge Color
         public static readonly Vector4 RedOutlineColor = KnownColor.DarkRed.Vector();
 

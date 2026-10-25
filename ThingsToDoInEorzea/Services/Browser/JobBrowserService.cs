@@ -16,6 +16,7 @@ namespace ThingsToDoInEorzea.Services.Browser
         public uint RowId { get; init; }
         public string Name { get; init; } = string.Empty;
     }
+
     public class JobBrowserService : LuminaBrowserService<Job, ClassJob>
     {
         private readonly IGameInventory gameInventory;
@@ -78,7 +79,10 @@ namespace ThingsToDoInEorzea.Services.Browser
             //{ 43, c => c.BST }, for some reason Beastmaster is not listed yet?
         };
 
-        public JobBrowserService(IDataManager dataManager, ISeStringEvaluator seStringEvaluator, IGameInventory gameInventory, IPlayerState playerState, Configuration configuration, ClientLanguage? overrideLanguage = null) : base(dataManager, seStringEvaluator, configuration, overrideLanguage)
+        public JobBrowserService(
+            IDataManager dataManager, ISeStringEvaluator seStringEvaluator, IGameInventory gameInventory,
+            IPlayerState playerState, Configuration configuration, ClientLanguage? overrideLanguage = null) : base(
+            dataManager, seStringEvaluator, configuration, overrideLanguage)
         {
             this.gameInventory = gameInventory;
             this.playerState = playerState;
@@ -96,6 +100,7 @@ namespace ThingsToDoInEorzea.Services.Browser
                     baseClassToAdvancedJob[row.ClassJobParent.RowId] = row.RowId;
                 }
             }
+
             // Create the reverse mapping for advanced jobs to their base classes
             advancedJobToBaseClass = baseClassToAdvancedJob.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
             advancedJobToBaseClass[ScholarJobId] = 26; // SCH -> ACN
@@ -150,6 +155,7 @@ namespace ThingsToDoInEorzea.Services.Browser
             var jobLevel = playerState.GetClassJobLevel(job);
             return jobLevel > 0;
         }
+
         protected override bool TryMapRow(ClassJob row, out uint id, out Job entity)
         {
             id = row.RowId;
@@ -167,10 +173,12 @@ namespace ThingsToDoInEorzea.Services.Browser
                 RowId = id,
                 Name = textInfo.ToTitleCase(name),
             };
-            
+
             return true;
         }
+
         public string GetJobName(uint jobId) => TryGet(jobId, out var job) ? job!.Name : $"Unknown Job ({jobId})";
+
         public ISet<uint> GetAllowedJobIdsForCategory(uint classJobCategoryId)
         {
             if (categoryAllowedJobsCache.TryGetValue(classJobCategoryId, out var allowedJobs))
@@ -190,6 +198,7 @@ namespace ThingsToDoInEorzea.Services.Browser
             categoryAllowedJobsCache.Add(classJobCategoryId, allowedJobIds);
             return allowedJobIds;
         }
+
         public static bool MatchesJob(uint jobId, uint targetJobId) => jobId == targetJobId;
 
         public bool HasSoulCrystal(uint jobRowId)
@@ -205,6 +214,7 @@ namespace ThingsToDoInEorzea.Services.Browser
 
             return ownedSoulCrystalsCache.Contains(soulCrystalRowId);
         }
+
         public uint GetEffectiveJobId(uint classJobId)
         {
             if (classJobId == 0) return 0;
@@ -218,7 +228,9 @@ namespace ThingsToDoInEorzea.Services.Browser
             // Case 2: classJobId is an Advanced Job (e.g. 20 MNK, 21 WAR, 27 SMN, 28 SCH)
             if (advancedJobToBaseClass.TryGetValue(classJobId, out var parentBaseId))
             {
-                return HasSoulCrystal(classJobId) ? classJobId :
+                return HasSoulCrystal(classJobId)
+                           ? classJobId
+                           :
                            // Player does not have the soul crystal -> fallback to base class
                            parentBaseId;
             }
@@ -247,6 +259,7 @@ namespace ThingsToDoInEorzea.Services.Browser
                             if (Configuration.HideUnusedJobs && !HasEverPlayedJob(ScholarJobId)) continue;
                             filteredAllowedJobIds.Add(ScholarJobId);
                         }
+
                         continue;
                     }
                 }
@@ -273,8 +286,10 @@ namespace ThingsToDoInEorzea.Services.Browser
                     filteredAllowedJobIds.Add(jobId);
                 }
             }
+
             return filteredAllowedJobIds;
         }
+
         public override void Dispose()
         {
             gameInventory.InventoryChanged -= OnInventoryChanged;

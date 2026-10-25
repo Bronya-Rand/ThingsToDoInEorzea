@@ -14,7 +14,10 @@ namespace ThingsToDoInEorzea.Conditions.Primary
     {
         // ITrackCondition implementation
         public event Action<ITrackCondition>? OnProgressChanged;
-        [JsonIgnore] public virtual bool IsComplete => Target > 0 && Current >= Target;
+
+        [JsonIgnore]
+        public virtual bool IsComplete => Target > 0 && Current >= Target;
+
         public virtual void Enable() { }
         public virtual void Disable() { }
         public virtual void OnGameEvent(GameEvent evt) { }
@@ -22,25 +25,34 @@ namespace ThingsToDoInEorzea.Conditions.Primary
         protected void NotifyProgressChanged() => OnProgressChanged?.Invoke(this);
 
         // IPrimaryCondition implementation
-        private int target = 1;
+
         public virtual int Target
         {
-            get => target;
+            get;
             set
             {
-                if (target != value)
+                if (field != value)
                 {
-                    target = value;
+                    field = value;
                     NotifyProgressChanged();
                 }
             }
-        }
-        [JsonIgnore] public virtual bool ShowsProgress => true;
-        [JsonIgnore] public virtual int Current => 0;
-        [JsonIgnore] public virtual IReadOnlySet<Type> AllowedModifierTypes { get; } = new HashSet<Type>();
-        public virtual string DescribeAction(GameDataServices gameData) => string.Empty;
+        } = 1;
+
+        [JsonIgnore]
+        public virtual bool ShowsProgress => true;
+
+        [JsonIgnore]
+        public virtual int Current => 0;
+
+        [JsonIgnore]
+        public virtual IReadOnlySet<Type> AllowedModifierTypes { get; } = new HashSet<Type>();
+
+        public virtual string DescribeAction() => string.Empty;
+
         public virtual EvalSource DescribeActionSource(GameDataServices gameData) =>
-            EvalSource.FromMacro(DescribeAction(gameData));
+            EvalSource.FromMacro(DescribeAction());
+
         public virtual bool IsValid() => false;
         public virtual void Dispose() => GC.SuppressFinalize(this);
     }

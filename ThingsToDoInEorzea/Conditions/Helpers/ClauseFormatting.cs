@@ -59,17 +59,19 @@ namespace ThingsToDoInEorzea.Conditions.Helpers
         public static string JoinWithConjunction(IEnumerable<string> values, ClientLanguage language)
         {
             var list = values.ToList();
-            if (list.Count == 0) return string.Empty;
-            if (list.Count == 1) return list[0];
-
-            return language switch
+            return list.Count switch
             {
-                ClientLanguage.Japanese => string.Join(JapaneseListConjunction, list),
-                ClientLanguage.German => string.Join(", ", list[..^1]) + GermanListEndConjunction + list[^1],
-                ClientLanguage.French => string.Join(", ", list[..^1]) + FrenchListEndConjunction + list[^1],
-                _ => list.Count == 2
-                    ? string.Join(EnglishListEndConjunction, list)
-                    : string.Join(", ", list[..^1]) + EnglishListEndConjunction + list[^1]
+                0 => string.Empty,
+                1 => list[0],
+                _ => language switch
+                {
+                    ClientLanguage.Japanese => string.Join(JapaneseListConjunction, list),
+                    ClientLanguage.German => string.Join(", ", list[..^1]) + GermanListEndConjunction + list[^1],
+                    ClientLanguage.French => string.Join(", ", list[..^1]) + FrenchListEndConjunction + list[^1],
+                    _ => list.Count == 2
+                             ? string.Join(EnglishListEndConjunction, list)
+                             : string.Join(", ", list[..^1]) + EnglishListEndConjunction + list[^1]
+                }
             };
         }
     }

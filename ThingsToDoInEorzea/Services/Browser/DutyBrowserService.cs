@@ -12,13 +12,21 @@ namespace ThingsToDoInEorzea.Services.Browser
         public string Name { get; init; } = string.Empty;
         public uint AcceptClassJobCategory { get; init; }
     }
-    public sealed class DutyBrowserService(IDataManager dataManager, ISeStringEvaluator seStringEvaluator, Configuration configuration, ClientLanguage? overrideLanguage = null) : LuminaBrowserService<Duty, ContentFinderCondition>(dataManager, seStringEvaluator, configuration, overrideLanguage)
+
+    public sealed class DutyBrowserService(
+        IDataManager dataManager,
+        ISeStringEvaluator seStringEvaluator,
+        Configuration configuration,
+        ClientLanguage? overrideLanguage = null)
+        : LuminaBrowserService<Duty, ContentFinderCondition>(dataManager, seStringEvaluator, configuration,
+                                                             overrideLanguage)
     {
         // ContentType.RowId
         private const uint TrialContentTypeId = 4;
         private const uint RaidContentTypeId = 5;
         private const uint UltimateContentTypeId = 28;
         private const uint ChaoticAllianceRaidContentTypeId = 37;
+
         protected override bool TryMapRow(ContentFinderCondition row, out uint id, out Duty entity)
         {
             id = row.RowId;
@@ -40,15 +48,17 @@ namespace ThingsToDoInEorzea.Services.Browser
             };
             return true;
         }
-        public string GetDutyName(uint dutyId) => TryGet(dutyId, out var duty) ? duty!.Name : $"Unknown Duty ({dutyId})";
+
         public uint GetAcceptClassJobCategoryId(uint dutyId)
             => TryGet(dutyId, out var duty) ? duty!.AcceptClassJobCategory : 0;
+
         public bool IsTrialRaidUltimate(uint contentFinderConditionId)
         {
             if (contentFinderConditionId == 0) return false;
             var duty = DataManager.GetExcelSheet<ContentFinderCondition>().GetRow(contentFinderConditionId);
             var type = duty.ContentType.RowId;
-            return type is TrialContentTypeId or RaidContentTypeId or UltimateContentTypeId or ChaoticAllianceRaidContentTypeId;
+            return type is TrialContentTypeId or RaidContentTypeId or UltimateContentTypeId
+                       or ChaoticAllianceRaidContentTypeId;
         }
     }
 }

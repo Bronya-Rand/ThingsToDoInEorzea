@@ -23,6 +23,7 @@ namespace ThingsToDoInEorzea.Conditions.Modifiers
 
         public override ClauseSectionKind Section => ClauseSectionKind.DutySettings;
         public override bool CheckOnStart => true;
+
         protected override void OnDutyStarted(GameEvent evt)
         {
             DutySettingsHelper.GetContentFinderSettings(
@@ -38,7 +39,7 @@ namespace ThingsToDoInEorzea.Conditions.Modifiers
             failedMinItemLevel = RequireMinItemLevel && !isMinItemLvl;
             failedSilenceEcho = RequireSilenceEcho && !isSilenceEcho;
 
-            lastKnownResult = !(failedUnrestrictedParty || failedLevelSync || failedMinItemLevel || failedSilenceEcho);
+            LastKnownResult = !(failedUnrestrictedParty || failedLevelSync || failedMinItemLevel || failedSilenceEcho);
         }
 
         public override bool Matches(GameEvent evt)
@@ -47,20 +48,22 @@ namespace ThingsToDoInEorzea.Conditions.Modifiers
             {
                 case GameEventType.DutyStarted:
                     OnDutyStarted(evt);
-                    return lastKnownResult ?? false;
+                    return LastKnownResult ?? false;
                 case GameEventType.DutyCompleted:
-                    return lastKnownResult ?? false;
+                    return LastKnownResult ?? false;
                 default:
                     return base.Matches(evt);
             }
         }
+
         public override bool IsValid()
         {
             if (RequireLevelSync && !RequireUnrestrictedParty) return false;
             return RequireUnrestrictedParty || RequireMinItemLevel || RequireSilenceEcho;
         }
 
-        public override IReadOnlyList<ClauseSegment> DescribeSegments(GameDataServices gameData, Configuration configuration)
+        public override IReadOnlyList<ClauseSegment> DescribeSegments(
+            GameDataServices gameData, Configuration configuration)
         {
             var segments = new List<ClauseSegment>();
             if (RequireUnrestrictedParty)
@@ -69,14 +72,17 @@ namespace ThingsToDoInEorzea.Conditions.Modifiers
                 if (RequireLevelSync)
                     segments.Add(ClauseSegment.ValueOnly(EvalSource.FromAddon(12696)));
             }
+
             if (RequireMinItemLevel)
             {
                 segments.Add(ClauseSegment.ValueOnly(EvalSource.FromAddon(10937)));
             }
+
             if (RequireSilenceEcho)
             {
                 segments.Add(ClauseSegment.ValueOnly(EvalSource.FromAddon(12691)));
             }
+
             return segments;
         }
 
@@ -89,8 +95,8 @@ namespace ThingsToDoInEorzea.Conditions.Modifiers
             if (failedMinItemLevel) reasons.Add("    Minimum IL (Item Level) was not enforced.");
             if (failedSilenceEcho) reasons.Add("    Echo was not silenced.");
             return reasons.Count > 0
-                ? $"Duty settings did not meet requirements: \n{string.Join("\n", reasons)}"
-                : "Duty settings did not meet requirements";
+                       ? $"Duty settings did not meet requirements: \n{string.Join("\n", reasons)}"
+                       : "Duty settings did not meet requirements";
         }
     }
 }

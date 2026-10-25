@@ -15,7 +15,11 @@ namespace ThingsToDoInEorzea.Services.Browser
     /// <param name="seStringEvaluator">The in-game string evaluator.</param>
     /// <param name="configuration">Plugin configuration.</param>
     /// <param name="overrideLanguage">The language to override the default language to.</param>
-    public abstract class LuminaBrowserService<TEntity, TLuminaRow>(IDataManager dataManager, ISeStringEvaluator seStringEvaluator, Configuration configuration, ClientLanguage? overrideLanguage = null) : BrowserServiceBase<uint, TEntity>(dataManager, configuration)
+    public abstract class LuminaBrowserService<TEntity, TLuminaRow>(
+        IDataManager dataManager,
+        ISeStringEvaluator seStringEvaluator,
+        Configuration configuration,
+        ClientLanguage? overrideLanguage = null) : BrowserServiceBase<uint, TEntity>(dataManager, configuration)
         where TLuminaRow : struct, IExcelRow<TLuminaRow>
     {
         protected readonly ISeStringEvaluator SeStringEvaluator = seStringEvaluator;
@@ -26,11 +30,12 @@ namespace ThingsToDoInEorzea.Services.Browser
             if (seString.IsEmpty) return string.Empty;
             return SeStringEvaluator.Evaluate(seString).ToString();
         }
+
         protected override void LoadData(CancellationToken token)
         {
             var excelSheet = OverrideLanguage.HasValue
-                ? DataManager.GetExcelSheet<TLuminaRow>(OverrideLanguage.Value)
-                : DataManager.GetExcelSheet<TLuminaRow>();
+                                 ? DataManager.GetExcelSheet<TLuminaRow>(OverrideLanguage.Value)
+                                 : DataManager.GetExcelSheet<TLuminaRow>();
 
             foreach (var row in excelSheet)
             {
@@ -42,6 +47,7 @@ namespace ThingsToDoInEorzea.Services.Browser
                 }
             }
         }
+
         protected abstract bool TryMapRow(TLuminaRow row, out uint id, out TEntity entity);
     }
 }

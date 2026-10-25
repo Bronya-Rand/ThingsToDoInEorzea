@@ -28,10 +28,7 @@ public class MainWindow : Window, IDisposable
 
         editModal = new ObjectiveEditModal(plugin)
         {
-            OnSave = (objective) =>
-            {
-                plugin.Tracker.AddObjective(objective);
-            }
+            OnSave = (objective) => { plugin.Tracker.AddObjective(objective); }
         };
         deleteModal = new ObjectiveDeleteModal(plugin);
     }
@@ -87,7 +84,8 @@ public class MainWindow : Window, IDisposable
         }
 
         using var table = ImRaii.Table("ObjectivesTable", 3,
-            ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.Resizable | ImGuiTableFlags.ScrollY);
+                                       ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.Resizable |
+                                       ImGuiTableFlags.ScrollY);
         if (!table) return;
 
         ImGui.TableSetupColumn(loc.T("ui.main.col_name"), ImGuiTableColumnFlags.WidthStretch, 200f);
@@ -109,8 +107,10 @@ public class MainWindow : Window, IDisposable
                 var rowStartPos = ImGui.GetCursorScreenPos();
 
                 var rowClicked = ImGui.Selectable($"##Row_{objective.Id}", isSelected,
-                    ImGuiSelectableFlags.SpanAllColumns | ImGuiSelectableFlags.AllowItemOverlap | ImGuiSelectableFlags.AllowDoubleClick,
-                    new Vector2(0, rowHeight));
+                                                  ImGuiSelectableFlags.SpanAllColumns |
+                                                  ImGuiSelectableFlags.AllowItemOverlap |
+                                                  ImGuiSelectableFlags.AllowDoubleClick,
+                                                  new Vector2(0, rowHeight));
 
                 ImGui.SetItemAllowOverlap();
 
@@ -182,6 +182,7 @@ public class MainWindow : Window, IDisposable
                 {
                     ImGui.TextColored(new Vector4(0.9f, 0.7f, 0.1f, 1.0f), loc.T("ui.status_in_progress"));
                 }
+
                 ImGui.SameLine();
                 ImGui.TextDisabled($"({objective.Primary.Current}/{objective.Primary.Target})");
             }

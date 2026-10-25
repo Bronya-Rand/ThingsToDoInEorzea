@@ -30,6 +30,7 @@ namespace ThingsToDoInEorzea.Conditions.Primary
 
         [JsonIgnore]
         public override int Current => CompletedDuties;
+
         public int CompletedDuties { get; set; }
 
         public override void OnGameEvent(GameEvent evt)
@@ -40,18 +41,21 @@ namespace ThingsToDoInEorzea.Conditions.Primary
             CompletedDuties++;
             NotifyProgressChanged();
         }
+
         public override void ResetObjectiveProgress()
         {
             CompletedDuties = 0;
             NotifyProgressChanged();
         }
+
         public override bool IsValid() => ContentFinderConditionId > 0 && Target > 0;
 
         public override EvalSource DescribeActionSource(GameDataServices gameData)
         {
             return Target <= 1
-                ? EvalSource.FromAddon(DutyClearOnceMacro, [0, 0, 0, 0, ContentFinderConditionId])
-                : EvalSource.FromAddon(DutyClearMultipleMacro, [0, 0, 0, 0, ContentFinderConditionId, 0, 0, Target]);
+                       ? EvalSource.FromAddon(DutyClearOnceMacro, [0, 0, 0, 0, ContentFinderConditionId])
+                       : EvalSource.FromAddon(DutyClearMultipleMacro,
+                                              [0, 0, 0, 0, ContentFinderConditionId, 0, 0, Target]);
         }
     }
 }

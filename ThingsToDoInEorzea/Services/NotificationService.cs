@@ -9,8 +9,6 @@ namespace ThingsToDoInEorzea.Services
 {
     public class NotificationService(LocalizationService localizationService)
     {
-        private readonly LocalizationService loc = localizationService;
-
         private static Dalamud.Game.Text.SeStringHandling.SeString BuildChatMessage(string message, Vector4 color, bool omitPluginName = false)
         {
             var builder = new Lumina.Text.SeStringBuilder()
@@ -30,7 +28,7 @@ namespace ThingsToDoInEorzea.Services
             var isLoggedIn = DalamudServices.ClientState.IsLoggedIn;
             if (isLoggedIn)
             {
-                var message = BuildChatMessage(loc.T("notify.completed", objectiveName), ImGuiColors.SuccessForeground);
+                var message = BuildChatMessage(localizationService.T("notify.completed", objectiveName), ImGuiColors.SuccessForeground);
                 DalamudServices.ChatGui.Print(message);
             }
         }
@@ -45,7 +43,7 @@ namespace ThingsToDoInEorzea.Services
             var isLoggedIn = DalamudServices.ClientState.IsLoggedIn;
             if (isLoggedIn)
             {
-                var message = BuildChatMessage(loc.T("notify.invalid", objectiveName, reason), ImGuiColors.DalamudOrange);
+                var message = BuildChatMessage(localizationService.T("notify.invalid", objectiveName, reason), ImGuiColors.DalamudOrange);
                 DalamudServices.ChatGui.Print(message);
             }
         }
@@ -60,7 +58,7 @@ namespace ThingsToDoInEorzea.Services
             var isLoggedIn = DalamudServices.ClientState.IsLoggedIn;
             if (isLoggedIn)
             {
-                var message = loc.T("notify.failed", objectiveName, reason);
+                var message = localizationService.T("notify.failed", objectiveName, reason);
                 DalamudServices.ChatGui.PrintError(message);
             }
         }
@@ -68,7 +66,7 @@ namespace ThingsToDoInEorzea.Services
         /// <summary>
         /// Sends a summary message to chat on login reminding the user of completed objectives.
         /// </summary>
-        /// <param name="completedCount">Number of completed objectives.</param>
+        /// <param name="completedObjectives">The list of completed objectives.</param>
         public void SendLoginSummary(List<TodoObjective> completedObjectives)
         {
             if (completedObjectives.Count <= 0) return;
@@ -78,7 +76,7 @@ namespace ThingsToDoInEorzea.Services
                 var completedObjectiveNames = completedObjectives.Select(o => o.Title).ToList();
                 var completedObjectivesStr = string.Join("\n", completedObjectiveNames);
 
-                var message = BuildChatMessage(loc.T("notify.login_summary", [completedObjectives.Count, completedObjectivesStr]), ImGuiColors.InfoForeground);
+                var message = BuildChatMessage(localizationService.T("notify.login_summary", [completedObjectives.Count, completedObjectivesStr]), ImGuiColors.InfoForeground);
                 DalamudServices.ChatGui.Print(message);
             }
         }

@@ -31,12 +31,12 @@ namespace ThingsToDoInEorzea.Conditions.Modifiers
             : null;
         [JsonIgnore] public bool IsExpired => IsRunning && Elapsed > MaxDuration;
 
-        [JsonIgnore] public override bool IsFailed => (lastKnownResult.HasValue && !lastKnownResult.Value) || IsExpired;
+        [JsonIgnore] public override bool IsFailed => (LastKnownResult.HasValue && !LastKnownResult.Value) || IsExpired;
 
         protected override void OnDutyStarted(GameEvent evt)
         {
             startTime = evt.Timestamp;
-            lastKnownResult = null;
+            LastKnownResult = null;
             lastElapsedTime = TimeSpan.Zero;
         }
         public override bool Matches(GameEvent evt)
@@ -48,12 +48,12 @@ namespace ThingsToDoInEorzea.Conditions.Modifiers
                         if (!startTime.HasValue) return false;
                         lastElapsedTime = evt.Timestamp - startTime.Value;
                         startTime = null;
-                        lastKnownResult = lastElapsedTime <= MaxDuration;
-                        return lastKnownResult.Value;
+                        LastKnownResult = lastElapsedTime <= MaxDuration;
+                        return LastKnownResult.Value;
                     }
                 case GameEventType.DutyWiped:
                     startTime = null;
-                    lastKnownResult = null;
+                    LastKnownResult = null;
                     return false;
                 case GameEventType.DutyRecommenced:
                     if (InDuty)
@@ -61,7 +61,7 @@ namespace ThingsToDoInEorzea.Conditions.Modifiers
                     return false;
                 default:
                     if (IsExpired)
-                        lastKnownResult = false;
+                        LastKnownResult = false;
                     return base.Matches(evt);
             }
         }

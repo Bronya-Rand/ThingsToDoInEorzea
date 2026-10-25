@@ -10,13 +10,13 @@ namespace ThingsToDoInEorzea.Windows.Components;
 
 public sealed class ObjectiveDeleteModal(Plugin plugin)
 {
-    private readonly Plugin plugin = plugin;
-
     private bool shouldOpenModal;
     private bool isOpen;
 
     #region Editing State
+
     private TodoObjective? objectiveToDelete;
+
     #endregion
 
     public Action<TodoObjective>? OnDelete { get; set; }
@@ -87,6 +87,7 @@ public sealed class ObjectiveDeleteModal(Plugin plugin)
                 plugin.Tracker.RemoveObjective(objectiveToDelete.Id);
                 objectiveToDelete = null;
             }
+
             isOpen = false;
         }
 

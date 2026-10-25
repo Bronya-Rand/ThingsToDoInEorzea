@@ -8,13 +8,15 @@ namespace ThingsToDoInEorzea.Conditions.Helpers
     /// </summary>
     public static unsafe class DutySettingsHelper
     {
-        public static void GetContentFinderSettings(out bool isLevelSync, out bool isMinIL, out bool isUnrestrictedParty, out bool isSilenceEcho, out LootRuleFlags lootRuleFlags)
+        public static void GetContentFinderSettings(
+            out bool isLevelSync, out bool isMinIl, out bool isUnrestrictedParty, out bool isSilenceEcho,
+            out LootRuleFlags lootRuleFlags)
         {
             var contentFinder = ContentsFinder.Instance();
             if (contentFinder == null)
             {
                 isLevelSync = false;
-                isMinIL = false;
+                isMinIl = false;
                 isUnrestrictedParty = false;
                 isSilenceEcho = false;
                 lootRuleFlags = LootRuleFlags.Normal;
@@ -22,7 +24,7 @@ namespace ThingsToDoInEorzea.Conditions.Helpers
             }
 
             isLevelSync = contentFinder->IsLevelSync;
-            isMinIL = contentFinder->IsMinimalIL;
+            isMinIl = contentFinder->IsMinimalIL;
             isUnrestrictedParty = contentFinder->IsUnrestrictedParty;
             isSilenceEcho = contentFinder->IsSilenceEcho;
             var flags = contentFinder->LootRules switch

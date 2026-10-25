@@ -8,7 +8,6 @@ namespace ThingsToDoInEorzea.Conditions.Helpers
     public readonly record struct ClauseSegment(EvalSource? LabelSource, EvalSource ValueSource)
     {
         public static ClauseSegment ValueOnly(EvalSource value) => new(null, value);
-        public static ClauseSegment WithLabel(EvalSource label, EvalSource value) => new(label, value);
         public bool HasLabel => LabelSource.HasValue;
     }
 
