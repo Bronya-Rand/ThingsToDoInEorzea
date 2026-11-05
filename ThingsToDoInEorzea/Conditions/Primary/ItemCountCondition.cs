@@ -66,10 +66,8 @@ namespace ThingsToDoInEorzea.Conditions.Primary
             return ItemId != 1 || !onFreeTrial || Target <= Constants.MaxGilOnFreeTrial;
         }
 
-        public override EvalSource DescribeActionSource(GameDataServices gameData)
-        {
-            return EvalSource.FromLocKey("action.obtain_item", Target, ItemId);
-        }
+        public override EvalSource DescribeActionSource(GameDataServices gameData) => 
+            EvalSource.FromLocKey("action.obtain_item", ItemId, Target);
 
         /// <summary>
         /// Fetches the current count of the specified item in the player's inventory, 
